@@ -42,6 +42,10 @@ class MongoQuery:
         self.ordering = []
         self.collection = self.compiler.get_collection()
         self.mongo_query = getattr(compiler.query, "raw_query", {})
+        # maybe I have to create a new object or named tuple.
+        # it will save lookups, some filters (in case of inner) and project to rename field
+        # don't know if the rename is needed
+        self.mongo_lookups = None
 
     def __repr__(self):
         return f"<MongoQuery: {self.mongo_query!r} ORDER {self.ordering!r}>"
@@ -103,6 +107,9 @@ class MongoQuery:
                 # another column.
                 fields[name] = 1 if name == column else f"${column}"
         pipeline = []
+        if self.mongo_lookups:
+            lookups = self.mongo_lookups
+            pipeline.extend(lookups)
         if self.mongo_query:
             pipeline.append({"$match": self.mongo_query})
         if fields:

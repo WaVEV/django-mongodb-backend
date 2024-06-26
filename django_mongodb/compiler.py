@@ -111,9 +111,11 @@ class SQLCompiler(compiler.SQLCompiler):
         if self.query.extra:
             raise NotSupportedError("QuerySet.extra() is not supported on MongoDB.")
         if self.query.select_related:
-            raise NotSupportedError("QuerySet.select_related() is not supported on MongoDB.")
+            pass
+            # raise NotSupportedError("QuerySet.select_related() is not supported on MongoDB.")
         if len([a for a in self.query.alias_map if self.query.alias_refcount[a]]) > 1:
-            raise NotSupportedError("Queries with multiple tables are not supported on MongoDB.")
+            pass
+            # raise NotSupportedError("Queries with multiple tables are not supported on MongoDB.")
         if any(
             isinstance(a, Aggregate) and not isinstance(a, Count)
             for a in self.query.annotations.values()
@@ -135,8 +137,9 @@ class SQLCompiler(compiler.SQLCompiler):
     def build_query(self, columns=None):
         """Check if the query is supported and prepare a MongoQuery."""
         self.check_query()
-        self.setup_query()
+        # self.setup_query()  # it was called twice
         query = self.query_class(self, columns)
+        query.mongo_lookups = self.get_lookup_clauses()
         try:
             query.mongo_query = {"$expr": self.query.where.as_mql(self, self.connection)}
         except FullResultSet:
@@ -204,6 +207,44 @@ class SQLCompiler(compiler.SQLCompiler):
 
     def get_collection(self):
         return self.connection.get_collection(self.query.get_meta().db_table)
+
+    def get_lookup_clauses(self):
+        """
+        Some docstring, only god knows
+        """
+        result = []
+        if (
+            len([self.query.alias_refcount for v in self.query.alias_refcount.values() if v != 0])
+            > 1
+        ):
+            """
+            import ipdb
+            ipdb.set_trace()
+            """
+        else:
+            return
+
+        for alias in tuple(self.query.alias_map):
+            if not self.query.alias_refcount[alias]:
+                continue
+
+            from_clause = self.query.alias_map[alias]
+            clause_sql, clause_params = self.compile(from_clause)  # .as_mql(self, self.connection)
+            result.append(clause_sql)
+
+        """
+        for t in self.query.extra_tables:
+            alias, _ = self.query.table_alias(t)
+            # Only add the alias if it's not already present (the table_alias()
+            # call increments the refcount, so an alias refcount of one means
+            # this is the only reference).
+            if (
+                alias not in self.query.alias_map
+                or self.query.alias_refcount[alias] == 1
+            ):
+                result.append(", %s" % self.quote_name_unless_alias(alias))
+        """
+        return
 
 
 class SQLInsertCompiler(SQLCompiler):
