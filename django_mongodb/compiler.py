@@ -205,8 +205,12 @@ class SQLCompiler(compiler.SQLCompiler):
             field_ordering.append((opts.get_field(name), ascending))
         return field_ordering
 
+    @property
+    def collection_name(self):
+        return self.query.get_meta().db_table
+
     def get_collection(self):
-        return self.connection.get_collection(self.query.get_meta().db_table)
+        return self.connection.get_collection(self.collection_name)
 
     def get_lookup_clauses(self):
         """
@@ -222,15 +226,16 @@ class SQLCompiler(compiler.SQLCompiler):
             ipdb.set_trace()
             """
         else:
-            return
+            return None
 
         for alias in tuple(self.query.alias_map):
-            if not self.query.alias_refcount[alias]:
+            if not self.query.alias_refcount[alias] or self.query.get_meta().db_table == alias:
                 continue
 
             from_clause = self.query.alias_map[alias]
-            clause_sql, clause_params = self.compile(from_clause)  # .as_mql(self, self.connection)
-            result.append(clause_sql)
+            # clause_mql = self.compile(from_clause)  # .as_mql(self, self.connection)
+            clause_mql = from_clause.as_mql(self, self.connection)
+            result += clause_mql
 
         """
         for t in self.query.extra_tables:
@@ -244,7 +249,7 @@ class SQLCompiler(compiler.SQLCompiler):
             ):
                 result.append(", %s" % self.quote_name_unless_alias(alias))
         """
-        return
+        return result
 
 
 class SQLInsertCompiler(SQLCompiler):

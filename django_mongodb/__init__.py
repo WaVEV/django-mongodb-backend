@@ -6,11 +6,13 @@ from .utils import check_django_compatability
 
 check_django_compatability()
 
+from .datastructures import register_structures  # noqa: E402
 from .expressions import register_expressions  # noqa: E402
 from .functions import register_functions  # noqa: E402
 from .lookups import register_lookups  # noqa: E402
 from .query import register_nodes  # noqa: E402
 
+register_structures()
 register_expressions()
 register_functions()
 register_lookups()
