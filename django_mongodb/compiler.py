@@ -44,16 +44,33 @@ class SQLCompiler(compiler.SQLCompiler):
         """
         columns = self.get_columns()
 
+        related_columns = []
         if results is None:
             # QuerySet.values() or values_list()
             try:
                 results = self.build_query(columns).fetch()
             except EmptyResultSet:
                 results = []
+        else:
+            index = len(columns)
+            while index < self.col_count:
+                foreign_columns = []
+                foreign_relation = self.select[index][0].alias
+                while index < self.col_count and foreign_relation == self.select[index][0].alias:
+                    foreign_columns.append(self.select[index][0])
+                    index += 1
+                related_columns.append(
+                    (
+                        foreign_relation,
+                        [(column.target.column, column) for column in foreign_columns],
+                    )
+                )
 
         converters = self.get_converters(columns)
         for entity in results:
-            yield self._make_result(entity, columns, converters, tuple_expected=tuple_expected)
+            yield self._make_result(
+                entity, columns, related_columns, converters, tuple_expected=tuple_expected
+            )
 
     def has_results(self):
         return bool(self.get_count(check_exists=True))
@@ -72,13 +89,22 @@ class SQLCompiler(compiler.SQLCompiler):
                 converters[name] = backend_converters + field_converters
         return converters
 
-    def _make_result(self, entity, columns, converters, tuple_expected=False):
+    def _make_result(self, entity, columns, related_columns, converters, tuple_expected=False):
         """
         Decode values for the given fields from the database entity.
 
         The entity is assumed to be a dict using field database column
         names as keys.
         """
+        result = self._project_result(entity, columns, converters, tuple_expected)
+        # Related columns
+        for relation, columns in related_columns:
+            result += self._project_result(entity[relation], columns, converters, tuple_expected)
+        if tuple_expected:
+            result = tuple(result)
+        return result
+
+    def _project_result(self, entity, columns, converters, tuple_expected=False):
         result = []
         for name, col in columns:
             field = col.field
@@ -90,8 +116,6 @@ class SQLCompiler(compiler.SQLCompiler):
                 for converter in converters.get(name, ()):
                     value = converter(value, col, self.connection)
             result.append(value)
-        if tuple_expected:
-            result = tuple(result)
         return result
 
     def check_query(self):
@@ -137,7 +161,6 @@ class SQLCompiler(compiler.SQLCompiler):
     def build_query(self, columns=None):
         """Check if the query is supported and prepare a MongoQuery."""
         self.check_query()
-        # self.setup_query()  # it was called twice
         query = self.query_class(self, columns)
         query.mongo_lookups = self.get_lookup_clauses()
         try:
@@ -213,27 +236,12 @@ class SQLCompiler(compiler.SQLCompiler):
         return self.connection.get_collection(self.collection_name)
 
     def get_lookup_clauses(self):
-        """
-        Some docstring, only god knows
-        """
         result = []
-        if (
-            len([self.query.alias_refcount for v in self.query.alias_refcount.values() if v != 0])
-            > 1
-        ):
-            """
-            import ipdb
-            ipdb.set_trace()
-            """
-        else:
-            return None
-
         for alias in tuple(self.query.alias_map):
-            if not self.query.alias_refcount[alias] or self.query.get_meta().db_table == alias:
+            if not self.query.alias_refcount[alias] or self.collection_name == alias:
                 continue
 
             from_clause = self.query.alias_map[alias]
-            # clause_mql = self.compile(from_clause)  # .as_mql(self, self.connection)
             clause_mql = from_clause.as_mql(self, self.connection)
             result += clause_mql
 
