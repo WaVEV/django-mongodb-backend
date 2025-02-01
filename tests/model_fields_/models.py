@@ -165,3 +165,40 @@ class Movie(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class RestorationRecord(EmbeddedModel):
+    date = models.DateField()
+    restored_by = models.CharField(max_length=255)
+
+
+# Details about a specific artifact.
+class ArtifactDetail(EmbeddedModel):
+    name = models.CharField(max_length=255)
+    metadata = models.JSONField()
+    restorations = EmbeddedModelArrayField(RestorationRecord, null=True)
+    last_restoration = EmbeddedModelField(RestorationRecord, null=True)
+
+
+# A section within an exhibit, containing multiple artifacts.
+class ExhibitSection(EmbeddedModel):
+    section_number = models.IntegerField()
+    artifacts = EmbeddedModelArrayField(ArtifactDetail, null=True)
+
+
+# An exhibit in the museum, composed of multiple sections.
+class MuseumExhibit(models.Model):
+    exhibit_name = models.CharField(max_length=255)
+    sections = EmbeddedModelArrayField(ExhibitSection, null=True)
+    main_section = EmbeddedModelField(ExhibitSection, null=True)
+
+    def __str__(self):
+        return self.exhibit_name
+
+
+class Tour(models.Model):
+    guide = models.CharField(max_length=100)
+    exhibit = models.ForeignKey(MuseumExhibit, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"Tour by {self.guide}"
