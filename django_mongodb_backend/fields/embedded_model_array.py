@@ -92,8 +92,6 @@ class _EmbeddedModelArrayOutputField(ArrayField):
         "gte",
         "lt",
         "lte",
-        "all",
-        "contained_by",
     }
 
     def get_lookup(self, name):
@@ -203,25 +201,6 @@ class EmbeddedModelArrayFieldLessThanOrEqual(
     EmbeddedModelArrayFieldBuiltinLookup, lookups.LessThanOrEqual
 ):
     pass
-
-
-@_EmbeddedModelArrayOutputField.register_lookup
-class EmbeddedModelArrayFieldAll(
-    EmbeddedModelArrayFieldBuiltinLookup, Lookup, ArrayAggregationSubqueryMixin
-):
-    lookup_name = "all"
-    get_db_prep_lookup_value_is_iterable = False
-
-    def as_mql(self, compiler, connection):
-        lhs_mql = process_lhs(self, compiler, connection)
-        values = process_rhs(self, compiler, connection)
-        return {
-            "$and": [
-                {"$ne": [lhs_mql, None]},
-                {"$ne": [values, None]},
-                {"$setIsSubset": [values, lhs_mql]},
-            ]
-        }
 
 
 class KeyTransform(Transform):

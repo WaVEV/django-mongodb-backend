@@ -187,17 +187,6 @@ class QueryingTests(TestCase):
                 self.assertCountEqual(MuseumExhibit.objects.filter(**kwargs), [])
                 self.assertIn(f"'field': '{lookup}'", captured_queries[0]["sql"])
 
-    def test_all_filter(self):
-        self.assertCountEqual(
-            MuseumExhibit.objects.filter(sections__section_number__all=[1, 2]), [self.wonders]
-        )
-
-    def test_contained_by(self):
-        self.assertCountEqual(
-            MuseumExhibit.objects.filter(sections__section_number__contained_by=[1, 2, 3]),
-            [self.egypt, self.new_descoveries, self.wonders, self.lost_empires],
-        )
-
     def test_len_filter(self):
         self.assertCountEqual(MuseumExhibit.objects.filter(sections__len=10), [])
         self.assertCountEqual(
@@ -310,9 +299,8 @@ class QueryingTests(TestCase):
         self.assertCountEqual(qs, [self.egypt_tour, self.wonders_tour])
 
     def test_foreign_field_with_slice(self):
-        # Only wonders exhibit has exactly two sections, and this slice matches first two
-        qs = Tour.objects.filter(exhibit__sections__0_2__section_number__all=[1, 2])
-        self.assertEqual(list(qs), [self.wonders_tour])
+        qs = Tour.objects.filter(exhibit__sections__0_2__section_number__in=[1, 2])
+        self.assertCountEqual(qs, [self.wonders_tour, self.egypt_tour])
 
     def test_subquery_section_number_lt(self):
         subq = ExhibitAudit.objects.filter(
@@ -322,13 +310,6 @@ class QueryingTests(TestCase):
             MuseumExhibit.objects.filter(sections__section_number=subq),
             [self.egypt, self.wonders, self.new_descoveries],
         )
-
-    def test_check_all_subquery(self):
-        subquery = ExhibitAudit.objects.filter(reviewed=True).values_list(
-            "related_section_number", flat=True
-        )
-        result = MuseumExhibit.objects.filter(sections__section_number__all=subquery)
-        self.assertCountEqual(result, [self.wonders])
 
     def test_check_in_subquery(self):
         subquery = ExhibitAudit.objects.filter(reviewed=True).values_list(
