@@ -127,8 +127,7 @@ class EmbeddedModelArrayFieldBuiltinLookup(Lookup):
         return {"$anyElementTrue": lhs_mql}
 
 
-@_EmbeddedModelArrayOutputField.register_lookup
-class EmbeddedModelArrayFieldIn(EmbeddedModelArrayFieldBuiltinLookup, lookups.In):
+class ArrayAggregationSubqueryMixin:
     def get_subquery_wrapping_pipeline(self, compiler, connection, field_name, expr):
         return [
             {
@@ -163,6 +162,13 @@ class EmbeddedModelArrayFieldIn(EmbeddedModelArrayFieldBuiltinLookup, lookups.In
                 }
             },
         ]
+
+
+@_EmbeddedModelArrayOutputField.register_lookup
+class EmbeddedModelArrayFieldIn(
+    EmbeddedModelArrayFieldBuiltinLookup, lookups.In, ArrayAggregationSubqueryMixin
+):
+    pass
 
 
 @_EmbeddedModelArrayOutputField.register_lookup
@@ -200,44 +206,11 @@ class EmbeddedModelArrayFieldLessThanOrEqual(
 
 
 @_EmbeddedModelArrayOutputField.register_lookup
-class EmbeddedModelArrayFieldAll(EmbeddedModelArrayFieldBuiltinLookup, Lookup):
+class EmbeddedModelArrayFieldAll(
+    EmbeddedModelArrayFieldBuiltinLookup, Lookup, ArrayAggregationSubqueryMixin
+):
     lookup_name = "all"
     get_db_prep_lookup_value_is_iterable = False
-
-    def get_subquery_wrapping_pipeline(self, compiler, connection, field_name, expr):
-        return [
-            {
-                "$facet": {
-                    "group": [
-                        {"$project": {"tmp_name": expr.as_mql(compiler, connection)}},
-                        {
-                            "$unwind": "$tmp_name",
-                        },
-                        {
-                            "$group": {
-                                "_id": None,
-                                "tmp_name": {"$addToSet": "$tmp_name"},
-                            }
-                        },
-                    ]
-                }
-            },
-            {
-                "$project": {
-                    field_name: {
-                        "$ifNull": [
-                            {
-                                "$getField": {
-                                    "input": {"$arrayElemAt": ["$group", 0]},
-                                    "field": "tmp_name",
-                                }
-                            },
-                            [],
-                        ]
-                    }
-                }
-            },
-        ]
 
     def as_mql(self, compiler, connection):
         lhs_mql = process_lhs(self, compiler, connection)
