@@ -180,6 +180,11 @@ class ArtifactDetail(EmbeddedModel):
     last_restoration = EmbeddedModelField(RestorationRecord, null=True)
 
 
+class ExhibitAudit(models.Model):
+    related_section_number = models.IntegerField()
+    reviewed = models.BooleanField()
+
+
 # A section within an exhibit, containing multiple artifacts.
 class ExhibitSection(EmbeddedModel):
     section_number = models.IntegerField()
