@@ -183,23 +183,6 @@ class EmbeddedModelArrayFieldAll(EmbeddedModelArrayFieldBuiltinLookup, Lookup):
         }
 
 
-@_EmbeddedModelArrayOutputField.register_lookup
-class ArrayContainedBy(EmbeddedModelArrayFieldBuiltinLookup, Lookup):
-    lookup_name = "contained_by"
-    get_db_prep_lookup_value_is_iterable = False
-
-    def as_mql(self, compiler, connection):
-        lhs_mql = process_lhs(self, compiler, connection)
-        value = process_rhs(self, compiler, connection)
-        return {
-            "$and": [
-                {"$ne": [lhs_mql, None]},
-                {"$ne": [value, None]},
-                {"$setIsSubset": [lhs_mql, value]},
-            ]
-        }
-
-
 class KeyTransform(Transform):
     def __init__(self, key_name, array_field, *args, **kwargs):
         super().__init__(*args, **kwargs)
