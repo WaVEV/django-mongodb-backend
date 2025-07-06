@@ -263,12 +263,11 @@ class SearchCombinable:
 class SearchExpression(SearchCombinable, Expression):
     output_field = FloatField()
 
-    def get_source_expressions(self):
-        return []
-
     def __str__(self):
-        args = ", ".join(map(str, self.get_source_expressions()))
-        return f"{self.search_type}({args})"
+        cls = self.identity[0]
+        kwargs = dict(self.identity[1:])
+        arg_str = ", ".join(f"{k}={v!r}" for k, v in kwargs.items())
+        return f"{cls.__name__}({arg_str})"
 
     def __repr__(self):
         return str(self)
@@ -316,8 +315,6 @@ class SearchAutocomplete(SearchExpression):
 
 
 class SearchEquals(SearchExpression):
-    search_type = "equals"
-
     def __init__(self, path, value, score=None):
         self.path = path
         self.value = value
@@ -570,8 +567,6 @@ class SearchGeoWithin(SearchExpression):
 
 
 class SearchMoreLikeThis(SearchExpression):
-    search_type = "more_like_this"
-
     def __init__(self, documents, score=None):
         self.documents = documents
         self.score = score
@@ -648,8 +643,6 @@ class SearchVector(SearchExpression):
 
 
 class CompoundExpression(SearchExpression):
-    search_type = "compound"
-
     def __init__(
         self,
         must=None,
@@ -698,8 +691,6 @@ class CompoundExpression(SearchExpression):
 
 
 class CombinedSearchExpression(SearchExpression):
-    search_type = "combined"
-
     def __init__(self, lhs, operator, rhs):
         self.lhs = lhs
         self.operator = operator
