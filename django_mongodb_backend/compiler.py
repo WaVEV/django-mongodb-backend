@@ -209,9 +209,6 @@ class SQLCompiler(compiler.SQLCompiler):
             ids = self.get_project_fields(tuple(columns), force_expression=True)
         return ids, replacements
 
-    def _build_search_pipeline(self, search_queries):
-        pass
-
     def _build_aggregation_pipeline(self, ids, group):
         """Build the aggregation pipeline for grouping."""
         pipeline = []
