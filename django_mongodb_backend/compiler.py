@@ -128,6 +128,9 @@ class SQLCompiler(compiler.SQLCompiler):
         self._prepare_search_expressions_for_pipeline(
             self.having, annotation_group_idx, replacements
         )
+        self._prepare_search_expressions_for_pipeline(
+            self.get_where(), annotation_group_idx, replacements
+        )
         return replacements
 
     def _prepare_annotations_for_aggregation_pipeline(self, order_by):
@@ -291,6 +294,8 @@ class SQLCompiler(compiler.SQLCompiler):
             for target, expr in self.query.annotation_select.items()
         }
         self.order_by_objs = [expr.replace_expressions(all_replacements) for expr, _ in order_by]
+        where_ = self.get_where().replace_expressions(all_replacements)
+        self.set_where(where_)
         return extra_select, order_by, group_by
 
     def execute_sql(
@@ -692,6 +697,9 @@ class SQLCompiler(compiler.SQLCompiler):
     def get_where(self):
         return getattr(self, "where", self.query.where)
 
+    def set_where(self, value):
+        self.where = value
+
     def explain_query(self):
         # Validate format (none supported) and options.
         options = self.connection.ops.explain_query_prefix(
@@ -778,6 +786,9 @@ class SQLDeleteCompiler(compiler.SQLDeleteCompiler, SQLCompiler):
     def get_where(self):
         return self.query.where
 
+    def set_where(self, value):
+        self.query.where = value
+
     @cached_property
     def collection_name(self):
         return self.query.base_table
@@ -848,6 +859,9 @@ class SQLUpdateCompiler(compiler.SQLUpdateCompiler, SQLCompiler):
 
     def get_where(self):
         return self.query.where
+
+    def set_where(self, value):
+        self.query.where = value
 
     @cached_property
     def collection_name(self):
