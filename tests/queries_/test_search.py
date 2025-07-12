@@ -296,11 +296,11 @@ class SearchTextTest(SearchUtilsMixin):
 
     def test_search_text(self):
         qs = Article.objects.annotate(score=SearchText(path="body", query="lazy"))
-        self.wait_for_assertion(lambda: self.assertCountEqual([self.article], qs))
+        self.wait_for_assertion(lambda: self.assertCountEqual([self.article], qs.all()))
 
     def test_search_lookup(self):
         qs = Article.objects.filter(body__search="lazy")
-        self.wait_for_assertion(lambda: self.assertCountEqual([self.article], qs))
+        self.wait_for_assertion(lambda: self.assertCountEqual([self.article], qs.all()))
 
     def test_search_text_with_fuzzy_and_criteria(self):
         qs = Article.objects.annotate(
