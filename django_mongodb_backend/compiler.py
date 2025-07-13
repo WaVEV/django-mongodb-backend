@@ -291,8 +291,9 @@ class SQLCompiler(compiler.SQLCompiler):
             for target, expr in self.query.annotation_select.items()
         }
         self.order_by_objs = [expr.replace_expressions(all_replacements) for expr, _ in order_by]
-        where_ = self.get_where().replace_expressions(all_replacements)
-        self.set_where(where_)
+        if (where := self.get_where()) and search_replacements:
+            where = where.replace_expressions(search_replacements)
+            self.set_where(where)
         return extra_select, order_by, group_by
 
     def execute_sql(
