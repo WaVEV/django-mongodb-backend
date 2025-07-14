@@ -241,7 +241,28 @@ class SQLCompiler(compiler.SQLCompiler):
         if not search_replacements:
             return []
         if len(search_replacements) > 1:
-            raise ValueError("Cannot perform more than one search operation.")
+            has_search = any(not isinstance(search, SearchVector) for search in search_replacements)
+            has_vector_search = any(
+                isinstance(search, SearchVector) for search in search_replacements
+            )
+            if has_search and has_vector_search:
+                raise ValueError(
+                    "Cannot combine a `$vectorSearch` with a `$search` operator. "
+                    "If you need to combine them, consider restructuring your query logic or "
+                    "running them as separate queries."
+                )
+            if not has_search:
+                raise ValueError(
+                    "Cannot combine two `$vectorSearch` operator. "
+                    "If you need to combine them, consider restructuring your query logic or "
+                    "running them as separate queries."
+                )
+            raise ValueError(
+                "Only one $search operation is allowed per query. "
+                f"Received {len(search_replacements)} search expressions. "
+                "To combine multiple search expressions, use either a CompoundExpression for "
+                "fine-grained control or CombinedSearchExpression for simple logical combinations."
+            )
         pipeline = []
         for search, result_col in search_replacements.items():
             score_function = (
@@ -252,7 +273,7 @@ class SQLCompiler(compiler.SQLCompiler):
                     search.as_mql(self, self.connection),
                     {
                         "$addFields": {
-                            result_col.as_mql(self, self.connection).removeprefix("$"): {
+                            result_col.as_mql(self, self.connection, as_path=True): {
                                 "$meta": score_function
                             }
                         }

@@ -3,6 +3,7 @@ from collections.abc import Callable
 from time import monotonic, sleep
 
 from django.db import connection
+from django.db.models import Q
 from django.db.utils import DatabaseError
 from django.test import TransactionTestCase, skipUnlessDBFeature
 from pymongo.operations import SearchIndexModel
@@ -463,7 +464,7 @@ class CompoundSearchTest(SearchUtilsMixin):
                 "mappings": {
                     "dynamic": False,
                     "fields": {
-                        "headline": {"type": "token"},
+                        "headline": [{"type": "token"}, {"type": "string"}],
                         "body": {"type": "string"},
                         "number": {"type": "number"},
                     },
@@ -498,7 +499,7 @@ class CompoundSearchTest(SearchUtilsMixin):
         self._tear_down(Article)
         super().tearDown()
 
-    def test_compound_expression(self):
+    def test_expression(self):
         must_expr = SearchEquals(path="headline", value="space exploration")
         must_not_expr = SearchPhrase(path="body", query="icy moons")
         should_expr = SearchPhrase(path="body", query="exoplanets")
@@ -513,7 +514,7 @@ class CompoundSearchTest(SearchUtilsMixin):
         qs = Article.objects.annotate(score=compound).order_by("score")
         self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.exoplanet]))
 
-    def test_compound_operations(self):
+    def test_operations(self):
         expr = SearchEquals(path="headline", value="space exploration") & ~SearchEquals(
             path="number", value=3
         )
@@ -521,6 +522,65 @@ class CompoundSearchTest(SearchUtilsMixin):
         self.wait_for_assertion(
             lambda: self.assertCountEqual(qs.all(), [self.mars_mission, self.exoplanet])
         )
+
+    def test_multiple_search(self):
+        msg = (
+            "Only one $search operation is allowed per query. Received 2 search expressions. "
+            "To combine multiple search expressions, use either a CompoundExpression for "
+            "fine-grained control or CombinedSearchExpression for simple logical combinations."
+        )
+        with self.assertRaisesMessage(ValueError, msg):
+            Article.objects.annotate(
+                score1=SearchEquals(path="headline", value="space exploration"),
+                score2=~SearchEquals(path="number", value=3),
+            ).order_by("score1", "score2").first()
+
+        with self.assertRaisesMessage(ValueError, msg):
+            Article.objects.filter(
+                Q(headline__search="space exploration"), Q(headline__search="space exploration 2")
+            ).first()
+
+    def test_multiple_type_search(self):
+        msg = (
+            "Cannot combine a `$vectorSearch` with a `$search` operator. "
+            "If you need to combine them, consider "
+            "restructuring your query logic or running them as separate queries."
+        )
+        with self.assertRaisesMessage(ValueError, msg):
+            Article.objects.annotate(
+                score1=SearchEquals(path="headline", value="space exploration"),
+                score2=SearchVector(
+                    path="headline",
+                    query_vector=[1, 2, 3],
+                    num_candidates=5,
+                    limit=2,
+                ),
+            ).order_by("score1", "score2").first()
+
+    def test_multiple_vector_search(self):
+        msg = (
+            "Cannot combine two `$vectorSearch` operator. If you need to combine them, "
+            "consider restructuring your query logic or running them as separate queries."
+        )
+        with self.assertRaisesMessage(ValueError, msg):
+            Article.objects.annotate(
+                score1=SearchVector(
+                    path="headline",
+                    query_vector=[1, 2, 3],
+                    num_candidates=5,
+                    limit=2,
+                ),
+                score2=SearchVector(
+                    path="headline",
+                    query_vector=[1, 2, 4],
+                    num_candidates=5,
+                    limit=2,
+                ),
+            ).order_by("score1", "score2").first()
+
+    def test_search_and_filter(self):
+        qs = Article.objects.filter(headline__search="space exploration", number__gt=2)
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.icy_moons]))
 
 
 @skipUnlessDBFeature("supports_atlas_search")

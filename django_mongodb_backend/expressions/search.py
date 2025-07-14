@@ -71,7 +71,7 @@ class SearchCombinable:
         return self._combine(other, Operator(Operator.OR))
 
     def __ror__(self, other):
-        return self._combine(self, Operator(Operator.OR), other)
+        return self._combine(other, Operator(Operator.OR))
 
 
 class SearchExpression(SearchCombinable, Expression):
@@ -101,10 +101,14 @@ class SearchExpression(SearchCombinable, Expression):
         return []
 
     def _get_indexed_fields(self, mappings):
-        for field, definition in mappings.get("fields", {}).items():
-            yield field
-            for path in self._get_indexed_fields(definition):
-                yield f"{field}.{path}"
+        if isinstance(mappings, list):
+            for definition in mappings:
+                yield from self._get_indexed_fields(definition)
+        else:
+            for field, definition in mappings.get("fields", {}).items():
+                yield field
+                for path in self._get_indexed_fields(definition):
+                    yield f"{field}.{path}"
 
     def _get_query_index(self, fields, compiler):
         fields = set(fields)
@@ -142,9 +146,7 @@ class SearchAutocomplete(SearchExpression):
             any-order token matching.
         score: Optional expression to adjust score relevance (e.g., `{"boost": {"value": 5}}`).
 
-    Notes:
-        * Requires an Atlas Search index with `autocomplete` mappings.
-        * The operator is injected under the `$search` stage in the aggregation pipeline.
+    Reference: https://www.mongodb.com/docs/atlas/atlas-search/autocomplete/
     """
 
     def __init__(self, path, query, fuzzy=None, token_order=None, score=None):
@@ -193,10 +195,7 @@ class SearchEquals(SearchExpression):
         value: The exact value to match against.
         score: Optional expression to modify the relevance score.
 
-    Notes:
-        * The field must be indexed with a supported type for `equals`.
-        * Supports numeric, string, boolean, and date values.
-        * Score boosting can be applied using the `score` parameter.
+    Reference: https://www.mongodb.com/docs/atlas/atlas-search/equals/
     """
 
     def __init__(self, path, value, score=None):
@@ -239,9 +238,7 @@ class SearchExists(SearchExpression):
         path: The document path to check (as string or expression).
         score: Optional expression to modify the relevance score.
 
-    Notes:
-        * The target field must be mapped in the Atlas Search index.
-        * This does not test for null—only for presence.
+    Reference: https://www.mongodb.com/docs/atlas/atlas-search/exists/
     """
 
     def __init__(self, path, score=None):
@@ -268,6 +265,23 @@ class SearchExists(SearchExpression):
 
 
 class SearchIn(SearchExpression):
+    """
+    Atlas Search expression that matches documents where the field value is in a given list.
+
+    This expression uses the **in** operator to match documents whose field
+    contains a value from the provided array of values.
+
+    Example:
+        SearchIn("status", ["pending", "approved", "rejected"])
+
+    Args:
+        path: The document path to match against (as string or expression).
+        value: A list of values to check for membership.
+        score: Optional expression to adjust the relevance score.
+
+    Reference: https://www.mongodb.com/docs/atlas/atlas-search/in/
+    """
+
     def __init__(self, path, value, score=None):
         self.path = cast_as_field(path)
         self.value = cast_as_value(value)
@@ -297,7 +311,7 @@ class SearchPhrase(SearchExpression):
     """
     Atlas Search expression that matches a phrase in the specified field.
 
-    This expression uses the **phrase** operator to search for exact or near-exact
+    This expression uses the **phrase** operator to search for exact or near exact
     sequences of terms. It supports optional slop (word distance) and synonym sets.
 
     Example:
@@ -310,10 +324,7 @@ class SearchPhrase(SearchExpression):
         synonyms: Optional name of a synonym mapping defined in the Atlas index.
         score: Optional expression to modify the relevance score.
 
-    Notes:
-        * The field must be mapped as `"type": "string"` with appropriate analyzers.
-        * Slop allows flexibility in word positioning, like `"quick brown fox"`
-            matching `"quick fox"` if `slop=1`.
+    Reference: https://www.mongodb.com/docs/atlas/atlas-search/phrase/
     """
 
     def __init__(self, path, query, slop=None, synonyms=None, score=None):
@@ -363,9 +374,7 @@ class SearchQueryString(SearchExpression):
         query: The Lucene-style query string.
         score: Optional expression to modify the relevance score.
 
-    Notes:
-        * The query string syntax must conform to Atlas Search rules.
-        * This operator is powerful but can be harder to validate or sanitize.
+    Reference: https://www.mongodb.com/docs/atlas/atlas-search/queryString/
     """
 
     def __init__(self, path, query, score=None):
@@ -411,9 +420,7 @@ class SearchRange(SearchExpression):
         gte: Optional inclusive lower bound (`>=`).
         score: Optional expression to modify the relevance score.
 
-    Notes:
-        * At least one of `lt`, `lte`, `gt`, or `gte` must be provided.
-        * The field must be mapped in the Atlas Search index as a comparable type.
+    Reference: https://www.mongodb.com/docs/atlas/atlas-search/range/
     """
 
     def __init__(self, path, lt=None, lte=None, gt=None, gte=None, score=None):
@@ -467,10 +474,7 @@ class SearchRegex(SearchExpression):
         allow_analyzed_field: Whether to allow matching against analyzed fields (default is False).
         score: Optional expression to modify the relevance score.
 
-    Notes:
-        * Regular expressions must follow JavaScript regex syntax.
-        * By default, the field must be mapped as `"analyzer": "keyword"`
-            unless `allow_analyzed_field=True`.
+    Reference: https://www.mongodb.com/docs/atlas/atlas-search/regex/
     """
 
     def __init__(self, path, query, allow_analyzed_field=None, score=None):
@@ -519,9 +523,7 @@ class SearchText(SearchExpression):
         synonyms: Optional name of a synonym mapping defined in the Atlas index.
         score: Optional expression to adjust relevance scoring.
 
-    Notes:
-        * The target field must be indexed for full-text search in Atlas.
-        * Fuzzy matching helps match terms with minor typos or variations.
+    Reference: https://www.mongodb.com/docs/atlas/atlas-search/text/
     """
 
     def __init__(self, path, query, fuzzy=None, match_criteria=None, synonyms=None, score=None):
@@ -574,11 +576,7 @@ class SearchWildcard(SearchExpression):
         allow_analyzed_field: Whether to allow matching against analyzed fields (default is False).
         score: Optional expression to modify the relevance score.
 
-    Notes:
-        * Wildcard patterns follow standard syntax, where `*` matches any sequence of characters
-            and `?` matches a single character.
-        * By default, the field should be keyword or unanalyzed
-            unless `allow_analyzed_field=True`.
+    Reference: https://www.mongodb.com/docs/atlas/atlas-search/wildcard/
     """
 
     def __init__(self, path, query, allow_analyzed_field=None, score=None):
@@ -625,9 +623,7 @@ class SearchGeoShape(SearchExpression):
         geometry: The GeoJSON geometry to compare against.
         score: Optional expression to modify the relevance score.
 
-    Notes:
-        * The field must be indexed as a geo shape type in Atlas Search.
-        * Geometry must conform to GeoJSON specification.
+    Reference: https://www.mongodb.com/docs/atlas/atlas-search/geoShape/
     """
 
     def __init__(self, path, relation, geometry, score=None):
@@ -674,9 +670,7 @@ class SearchGeoWithin(SearchExpression):
         geo_object: The GeoJSON geometry defining the boundary.
         score: Optional expression to adjust the relevance score.
 
-    Notes:
-        * The geo field must be indexed appropriately in the Atlas Search index.
-        * The geometry must follow GeoJSON format.
+    Reference: https://www.mongodb.com/docs/atlas/atlas-search/geoWithin/
     """
 
     def __init__(self, path, kind, geo_object, score=None):
@@ -719,9 +713,7 @@ class SearchMoreLikeThis(SearchExpression):
         documents: A list of example documents or expressions to find similar documents.
         score: Optional expression to modify the relevance scoring.
 
-    Notes:
-        * The documents should be representative examples to base similarity on.
-        * Supports various field types depending on the Atlas Search configuration.
+    Reference: https://www.mongodb.com/docs/atlas/atlas-search/morelikethis/
     """
 
     def __init__(self, documents, score=None):
@@ -774,9 +766,7 @@ class CompoundExpression(SearchExpression):
         score: Optional expression to adjust scoring.
         minimum_should_match: Minimum number of `should` clauses that must match.
 
-    Notes:
-        * This is the most flexible way to build complex Atlas Search queries.
-        * Supports nesting of expressions to any depth.
+    Reference: https://www.mongodb.com/docs/atlas/atlas-search/compound/
     """
 
     def __init__(
@@ -859,10 +849,6 @@ class CombinedSearchExpression(SearchExpression):
         lhs: The left-hand search expression.
         operator: The boolean operator as a string (e.g., "and", "or", "not").
         rhs: The right-hand search expression.
-
-    Notes:
-        * The operator must be supported by MongoDB Atlas Search boolean logic.
-        * This class enables building complex nested search queries.
     """
 
     def __init__(self, lhs, operator, rhs):
@@ -917,10 +903,7 @@ class SearchVector(SearchExpression):
         exact: Optional flag to enforce exact matching.
         filter: Optional filter expression to narrow candidate documents.
 
-    Notes:
-        * The vector field must be indexed as a vector type in Atlas Search.
-        * Parameters like `num_candidates` and `exact` control search
-            performance and accuracy trade-offs.
+    Reference: https://www.mongodb.com/docs/atlas/atlas-vector-search/vector-search-stage/
     """
 
     def __init__(
