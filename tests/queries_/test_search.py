@@ -40,7 +40,7 @@ def _wait_for_assertion(timeout: float = 120, interval: float = 0.5) -> None:
     """
 
     @staticmethod
-    def _inner_wait_loop(predicate: Callable):
+    def inner_wait_loop(predicate: Callable):
         """
         Waits until the given predicate stops raising AssertionError or DatabaseError.
 
@@ -63,7 +63,7 @@ def _wait_for_assertion(timeout: float = 120, interval: float = 0.5) -> None:
             else:
                 break
 
-    return _inner_wait_loop
+    return inner_wait_loop
 
 
 @skipUnlessDBFeature("supports_atlas_search")
