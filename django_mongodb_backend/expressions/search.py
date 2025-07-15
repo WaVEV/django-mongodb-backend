@@ -260,7 +260,7 @@ class SearchExists(SearchExpression):
             "path": self.path.as_mql(compiler, connection, as_path=True),
         }
         if self.score is not None:
-            params["score"] = self.score.definitions
+            params["score"] = self.score.as_mql(compiler, connection)
         return {"exists": params}
 
 
@@ -601,7 +601,7 @@ class SearchWildcard(SearchExpression):
             "query": self.query.value,
         }
         if self.score:
-            params["score"] = self.score.query.as_mql(compiler, connection)
+            params["score"] = self.score.as_mql(compiler, connection)
         if self.allow_analyzed_field is not None:
             params["allowAnalyzedField"] = self.allow_analyzed_field.value
         return {"wildcard": params}
@@ -991,10 +991,10 @@ class SearchScoreOption(Expression):
     """Class to mutate scoring on a search operation"""
 
     def __init__(self, definitions=None):
-        self.definitions = definitions
+        self._definitions = definitions
 
     def as_mql(self, compiler, connection):
-        return self.definitions
+        return self._definitions
 
 
 class SearchTextLookup(Lookup):

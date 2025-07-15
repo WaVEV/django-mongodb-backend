@@ -20,6 +20,7 @@ from django_mongodb_backend.expressions.search import (
     SearchPhrase,
     SearchRange,
     SearchRegex,
+    SearchScoreOption,
     SearchText,
     SearchVector,
     SearchWildcard,
@@ -70,18 +71,16 @@ def _wait_for_assertion(timeout: float = 120, interval: float = 0.5) -> None:
 class SearchUtilsMixin(TransactionTestCase):
     available_apps = []
 
-    @staticmethod
-    def _get_collection(model):
+    def _get_collection(self, model):
         return connection.database.get_collection(model._meta.db_table)
 
-    @staticmethod
-    def create_search_index(model, index_name, definition, type="search"):
-        collection = SearchUtilsMixin._get_collection(model)
+    def create_search_index(self, model, index_name, definition, type="search"):
+        collection = self._get_collection(model)
         idx = SearchIndexModel(definition=definition, name=index_name, type=type)
         collection.create_search_index(idx)
 
     def _tear_down(self, model):
-        collection = SearchUtilsMixin._get_collection(model)
+        collection = self._get_collection(model)
         for search_indexes in collection.list_search_indexes():
             collection.drop_search_index(search_indexes["name"])
         collection.delete_many({})
@@ -95,7 +94,12 @@ class SearchEqualsTest(SearchUtilsMixin):
         self.create_search_index(
             Article,
             "equals_headline_index",
-            {"mappings": {"dynamic": False, "fields": {"headline": {"type": "token"}}}},
+            {
+                "mappings": {
+                    "dynamic": False,
+                    "fields": {"headline": {"type": "token"}, "number": {"type": "number"}},
+                }
+            },
         )
         self.article = Article.objects.create(headline="cross", number=1, body="body")
         Article.objects.create(headline="other thing", number=2, body="body")
@@ -107,6 +111,44 @@ class SearchEqualsTest(SearchUtilsMixin):
     def test_search_equals(self):
         qs = Article.objects.annotate(score=SearchEquals(path="headline", value="cross"))
         self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
+
+    def test_boost_score(self):
+        boost_score = SearchScoreOption({"boost": {"value": 3}})
+
+        qs = Article.objects.annotate(
+            score=SearchEquals(path="headline", value="cross", score=boost_score)
+        )
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
+        scored = qs.first()
+        self.assertGreaterEqual(scored.score, 3.0)
+
+    def test_constant_score(self):
+        constant_score = SearchScoreOption({"constant": {"value": 10}})
+        qs = Article.objects.annotate(
+            score=SearchEquals(path="headline", value="cross", score=constant_score)
+        )
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
+        scored = qs.first()
+        self.assertAlmostEqual(scored.score, 10.0, places=2)
+
+    def test_function_score(self):
+        function_score = SearchScoreOption(
+            {
+                "function": {
+                    "path": {
+                        "value": "number",
+                        "undefined": 0,
+                    },
+                }
+            }
+        )
+
+        qs = Article.objects.annotate(
+            score=SearchEquals(path="headline", value="cross", score=function_score)
+        )
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
+        scored = qs.first()
+        self.assertAlmostEqual(scored.score, 1.0, places=2)
 
 
 @skipUnlessDBFeature("supports_atlas_search")
@@ -173,6 +215,21 @@ class SearchAutocompleteTest(SearchUtilsMixin):
         )
         self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
 
+    def test_constant_score(self):
+        constant_score = SearchScoreOption({"constant": {"value": 10}})
+        qs = Article.objects.annotate(
+            score=SearchAutocomplete(
+                path="headline",
+                query="crossing",
+                token_order="sequential",  # noqa: S106
+                fuzzy={"maxEdits": 2},
+                score=constant_score,
+            )
+        )
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
+        scored = qs.first()
+        self.assertAlmostEqual(scored.score, 10.0, places=2)
+
 
 @skipUnlessDBFeature("supports_atlas_search")
 class SearchExistsTest(SearchUtilsMixin):
@@ -184,9 +241,20 @@ class SearchExistsTest(SearchUtilsMixin):
         )
         self.article = Article.objects.create(headline="ignored", number=3, body="something")
 
+    def tearDown(self):
+        self._tear_down(Article)
+        super().tearDown()
+
     def test_search_exists(self):
         qs = Article.objects.annotate(score=SearchExists(path="body"))
         self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
+
+    def test_constant_score(self):
+        constant_score = SearchScoreOption({"constant": {"value": 10}})
+        qs = Article.objects.annotate(score=SearchExists(path="body", score=constant_score))
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
+        scored = qs.first()
+        self.assertAlmostEqual(scored.score, 10.0, places=2)
 
 
 @skipUnlessDBFeature("supports_atlas_search")
@@ -207,6 +275,15 @@ class SearchInTest(SearchUtilsMixin):
     def test_search_in(self):
         qs = Article.objects.annotate(score=SearchIn(path="headline", value=["cross", "river"]))
         self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
+
+    def test_constant_score(self):
+        constant_score = SearchScoreOption({"constant": {"value": 10}})
+        qs = Article.objects.annotate(
+            score=SearchIn(path="headline", value=["cross", "river"], score=constant_score)
+        )
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
+        scored = qs.first()
+        self.assertAlmostEqual(scored.score, 10.0, places=2)
 
 
 @skipUnlessDBFeature("supports_atlas_search")
@@ -230,6 +307,15 @@ class SearchPhraseTest(SearchUtilsMixin):
         qs = Article.objects.annotate(score=SearchPhrase(path="body", query="quick brown"))
         self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
 
+    def test_constant_score(self):
+        constant_score = SearchScoreOption({"constant": {"value": 10}})
+        qs = Article.objects.annotate(
+            score=SearchPhrase(path="body", query="quick brown", score=constant_score)
+        )
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
+        scored = qs.first()
+        self.assertAlmostEqual(scored.score, 10.0, places=2)
+
 
 @skipUnlessDBFeature("supports_atlas_search")
 class SearchRangeTest(SearchUtilsMixin):
@@ -249,6 +335,15 @@ class SearchRangeTest(SearchUtilsMixin):
     def test_search_range(self):
         qs = Article.objects.annotate(score=SearchRange(path="number", gte=10, lt=30))
         self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.number20]))
+
+    def test_constant_score(self):
+        constant_score = SearchScoreOption({"constant": {"value": 10}})
+        qs = Article.objects.annotate(
+            score=SearchRange(path="number", gte=10, lt=30, score=constant_score)
+        )
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.number20]))
+        scored = qs.first()
+        self.assertAlmostEqual(scored.score, 10.0, places=2)
 
 
 @skipUnlessDBFeature("supports_atlas_search")
@@ -276,6 +371,17 @@ class SearchRegexTest(SearchUtilsMixin):
             score=SearchRegex(path="headline", query="hello.*", allow_analyzed_field=True)
         )
         self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
+
+    def test_constant_score(self):
+        constant_score = SearchScoreOption({"constant": {"value": 10}})
+        qs = Article.objects.annotate(
+            score=SearchRegex(
+                path="headline", query="hello.*", allow_analyzed_field=True, score=constant_score
+            )
+        )
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
+        scored = qs.first()
+        self.assertAlmostEqual(scored.score, 10.0, places=2)
 
 
 @skipUnlessDBFeature("supports_atlas_search")
@@ -311,6 +417,21 @@ class SearchTextTest(SearchUtilsMixin):
         )
         self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
 
+    def test_constant_score(self):
+        constant_score = SearchScoreOption({"constant": {"value": 10}})
+        qs = Article.objects.annotate(
+            score=SearchText(
+                path="body",
+                query="lazzy",
+                fuzzy={"maxEdits": 2},
+                match_criteria="all",
+                score=constant_score,
+            )
+        )
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
+        scored = qs.first()
+        self.assertAlmostEqual(scored.score, 10.0, places=2)
+
 
 @skipUnlessDBFeature("supports_atlas_search")
 class SearchWildcardTest(SearchUtilsMixin):
@@ -335,6 +456,15 @@ class SearchWildcardTest(SearchUtilsMixin):
     def test_search_wildcard(self):
         qs = Article.objects.annotate(score=SearchWildcard(path="headline", query="dark-*"))
         self.wait_for_assertion(lambda: self.assertCountEqual([self.article], qs))
+
+    def test_constant_score(self):
+        constant_score = SearchScoreOption({"constant": {"value": 10}})
+        qs = Article.objects.annotate(
+            score=SearchWildcard(path="headline", query="dark-*", score=constant_score)
+        )
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
+        scored = qs.first()
+        self.assertAlmostEqual(scored.score, 10.0, places=2)
 
 
 @skipUnlessDBFeature("supports_atlas_search")
@@ -371,6 +501,21 @@ class SearchGeoShapeTest(SearchUtilsMixin):
         )
         self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
 
+    def test_constant_score(self):
+        polygon = {
+            "type": "Polygon",
+            "coordinates": [[[30, 0], [50, 0], [50, 10], [30, 10], [30, 0]]],
+        }
+        constant_score = SearchScoreOption({"constant": {"value": 10}})
+        qs = Article.objects.annotate(
+            score=SearchGeoShape(
+                path="location", relation="within", geometry=polygon, score=constant_score
+            )
+        )
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
+        scored = qs.first()
+        self.assertAlmostEqual(scored.score, 10.0, places=2)
+
 
 @skipUnlessDBFeature("supports_atlas_search")
 class SearchGeoWithinTest(SearchUtilsMixin):
@@ -404,6 +549,24 @@ class SearchGeoWithinTest(SearchUtilsMixin):
             )
         )
         self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
+
+    def test_constant_score(self):
+        polygon = {
+            "type": "Polygon",
+            "coordinates": [[[30, 0], [50, 0], [50, 10], [30, 10], [30, 0]]],
+        }
+        constant_score = SearchScoreOption({"constant": {"value": 10}})
+        qs = Article.objects.annotate(
+            score=SearchGeoWithin(
+                path="location",
+                kind="geometry",
+                geo_object=polygon,
+                score=constant_score,
+            )
+        )
+        self.wait_for_assertion(lambda: self.assertCountEqual(qs.all(), [self.article]))
+        scored = qs.first()
+        self.assertAlmostEqual(scored.score, 10.0, places=2)
 
 
 @skipUnlessDBFeature("supports_atlas_search")
@@ -522,6 +685,48 @@ class CompoundSearchTest(SearchUtilsMixin):
         self.wait_for_assertion(
             lambda: self.assertCountEqual(qs.all(), [self.mars_mission, self.exoplanet])
         )
+
+    def test_mixed_scores(self):
+        boost_score = SearchScoreOption({"boost": {"value": 5}})
+        constant_score = SearchScoreOption({"constant": {"value": 20}})
+        function_score = SearchScoreOption(
+            {"function": {"path": {"value": "number", "undefined": 0}}}
+        )
+
+        must_expr = SearchEquals(path="headline", value="space exploration", score=boost_score)
+        should_expr = SearchPhrase(path="body", query="exoplanets", score=constant_score)
+        must_not_expr = SearchPhrase(path="body", query="icy moons", score=function_score)
+
+        compound = CompoundExpression(
+            must=[must_expr],
+            must_not=[must_not_expr],
+            should=[should_expr],
+        )
+        qs = Article.objects.annotate(score=compound).order_by("-score")
+        self.wait_for_assertion(
+            lambda: self.assertListEqual(list(qs.all()), [self.exoplanet, self.mars_mission])
+        )
+        # Exoplanet should rank first because of the constant 20 bump.
+        self.assertEqual(qs.first(), self.exoplanet)
+
+    def test_operationss_with_function_score(self):
+        function_score = SearchScoreOption(
+            {"function": {"path": {"value": "number", "undefined": 0}}}
+        )
+
+        expr = SearchEquals(
+            path="headline",
+            value="space exploration",
+            score=function_score,
+        ) & ~SearchEquals(path="number", value=3)
+
+        qs = Article.objects.annotate(score=expr).order_by("-score")
+
+        self.wait_for_assertion(
+            lambda: self.assertListEqual(list(qs), [self.exoplanet, self.mars_mission])
+        )
+        # Returns mars_mission (score≈1) and exoplanet (score≈2) then; exoplanet first.
+        self.assertEqual(qs.first(), self.exoplanet)
 
     def test_multiple_search(self):
         msg = (
