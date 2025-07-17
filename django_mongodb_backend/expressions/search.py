@@ -89,16 +89,13 @@ class SearchExpression(SearchCombinable, Expression):
         cls = self.identity[0]
         kwargs = dict(self.identity[1:])
         arg_str = ", ".join(f"{k}={v!r}" for k, v in kwargs.items())
-        return f"{cls.__name__}({arg_str})"
+        return f"<{cls.__name__}({arg_str})>"
 
     def __repr__(self):
         return str(self)
 
     def as_sql(self, compiler, connection):
         return "", []
-
-    def get_source_expressions(self):
-        return []
 
     def _get_indexed_fields(self, mappings):
         if isinstance(mappings, list):

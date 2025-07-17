@@ -805,9 +805,6 @@ class SQLDeleteCompiler(compiler.SQLDeleteCompiler, SQLCompiler):
     def get_where(self):
         return self.query.where
 
-    def set_where(self, value):
-        self.query.where = value
-
     @cached_property
     def collection_name(self):
         return self.query.base_table
@@ -878,9 +875,6 @@ class SQLUpdateCompiler(compiler.SQLUpdateCompiler, SQLCompiler):
 
     def get_where(self):
         return self.query.where
-
-    def set_where(self, value):
-        self.query.where = value
 
     @cached_property
     def collection_name(self):
