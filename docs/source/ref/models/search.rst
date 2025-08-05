@@ -1,18 +1,21 @@
-================
+============
 Atlas search
-================
+============
+
+.. currentmodule:: django_mongodb_backend.expressions
+
+.. versionadded:: 5.2.0b2
 
 The database functions in the ``django_mongodb_backend.expressions.search``
-module ease the use of MongoDB Atlas search's `full text and vector search
-engine <https://www.mongodb.com/docs/atlas/atlas-search/>`_.
+module ease the use of MongoDB Atlas search's :doc:`full text and vector search
+engine <atlas:atlas-search>`.
 
-For the examples in this document, we'll use the following models:
-
-.. code-block:: pycon
+For the examples in this document, we'll use the following models::
 
     from django.db import models
     from django_mongodb_backend.models import EmbeddedModel
     from django_mongodb_backend.fields import ArrayField, EmbeddedModelField
+
 
     class Writer(EmbeddedModel):
         name = models.CharField(max_length=10)
@@ -26,17 +29,15 @@ For the examples in this document, we'll use the following models:
         plot_embedding = ArrayField(models.FloatField(), size=3, null=True)
         writer = EmbeddedModelField(Writer, null=True)
 
-
 ``SearchEquals``
 ================
-Atlas Search expression that matches documents where a field is equal to a
-given value.
 
-This expression uses the ``equals`` operator to perform exact matches
-on fields indexed in a MongoDB Atlas Search index.
+.. class:: SearchEquals(path, value, score=None)
 
-`SearchEquals docs <https://www.mongodb.com/docs/atlas/atlas-search/equals/>`_
+Atlas Search expression that matches documents where a field is equal to a given value.
 
+This expression uses the :doc:`equals operator <atlas:atlas-search/equals>` to perform
+exact matches on fields indexed in a MongoDB Atlas Search index.
 
 .. code-block:: pycon
 
@@ -48,11 +49,9 @@ The ``path`` argument can be either the name of a field (as a string), or a
 :class:`~django.db.models.expressions.Col` instance. The ``value`` argument
 must be a string or a :class:`~django.db.models.expressions.Value`.
 
-``SearchEquals`` objects can be reused and combined with other search
-expressions.
+``SearchEquals`` objects can be reused and combined with other search expressions.
 
-See :ref:`search-operations-combinable`
-
+See :ref:`search-operations-combinable`.
 
 ``SearchAutocomplete``
 ======================
@@ -90,8 +89,7 @@ Optional arguments:
 ``SearchAutocomplete`` expressions can be reused and composed with other
 search expressions.
 
-See also: :ref:`search-operations-combinable`
-
+See also: :ref:`search-operations-combinable`.
 
 ``SearchExists``
 ================
@@ -122,8 +120,7 @@ result.
 ``SearchExists`` expressions can be reused and combined with other search
 expressions.
 
-See also: :ref:`search-operations-combinable`
-
+See also: :ref:`search-operations-combinable`.
 
 ``SearchIn``
 ============
@@ -154,8 +151,7 @@ An optional ``score`` argument can be used to customize relevance scoring.
 ``SearchIn`` expressions can be reused and combined with other search
 expressions.
 
-See also: :ref:`search-operations-combinable`
-
+See also: :ref:`search-operations-combinable`.
 
 ``SearchPhrase``
 ================
@@ -192,8 +188,7 @@ Optional arguments:
 ``SearchPhrase`` expressions can be reused and combined with other search
 expressions.
 
-See also: :ref:`search-operations-combinable`
-
+See also: :ref:`search-operations-combinable`.
 
 ``SearchQueryString``
 =====================
@@ -226,8 +221,7 @@ An optional ``score`` argument may be used to adjust relevance scoring.
 ``SearchQueryString`` expressions can be reused and combined with other search
 expressions.
 
-See also: :ref:`search-operations-combinable`
-
+See also: :ref:`search-operations-combinable`.
 
 ``SearchRange``
 ===============
@@ -263,8 +257,7 @@ Optional arguments:
 ``SearchRange`` expressions can be reused and combined with other search
 expressions.
 
-See also: :ref:`search-operations-combinable`
-
+See also: :ref:`search-operations-combinable`.
 
 ``SearchRegex``
 ===============
@@ -298,8 +291,7 @@ Optional arguments:
 ``SearchRegex`` expressions can be reused and combined with other search
 expressions.
 
-See also: :ref:`search-operations-combinable`
-
+See also: :ref:`search-operations-combinable`.
 
 ``SearchText``
 ==============
@@ -343,7 +335,6 @@ Optional arguments:
 
 See also: :ref:`search-operations-combinable`
 
-
 ``SearchWildcard``
 ==================
 
@@ -353,7 +344,7 @@ This expression uses the ``wildcard`` operator to search for terms matching
 a pattern with ``*`` (any sequence of characters) and ``?`` (any single
 character) wildcards.
 
-`SearchWildcard docs <https://www.mongodb.com/docs/atlas/atlas-search/wildcard/>`_
+`SearchWildcard docs <https://www.mongodb.com/docs/atlas/atlas-search/wildcard/>`_.
 
 .. code-block:: pycon
 
@@ -379,8 +370,7 @@ Optional arguments:
 ``SearchWildcard`` expressions can be reused and combined with other search
 expressions.
 
-See also: :ref:`search-operations-combinable`
-
+See also: :ref:`search-operations-combinable`.
 
 ``SearchGeoShape``
 ==================
@@ -388,10 +378,10 @@ See also: :ref:`search-operations-combinable`
 Atlas Search expression that filters documents based on spatial relationships
 with a geometry.
 
-This expression uses the ``geoShape`` operator to match documents where a geo
+This expression uses the :doc:geoShape operator <atlas:atlas-search/geoShape>` to match documents where a geo
 field has a specified spatial relation to a given GeoJSON geometry.
 
-`SearchGeoShape docs <https://www.mongodb.com/docs/atlas/atlas-search/geoShape/>`_
+`SearchGeoShape docs <https://www.mongodb.com/docs/atlas/atlas-search/geoShape/>`_.
 
 .. code-block:: pycon
 
@@ -421,8 +411,7 @@ Optional:
 ``SearchGeoShape`` expressions can be reused and combined with other search
 expressions.
 
-See also: :ref:`search-operations-combinable`
-
+See also: :ref:`search-operations-combinable`.
 
 ``SearchGeoWithin``
 ===================
@@ -462,8 +451,7 @@ Optional:
 ``SearchGeoWithin`` expressions can be reused and combined with other search
     expressions.
 
-See also: :ref:`search-operations-combinable`
-
+See also: :ref:`search-operations-combinable`.
 
 ``SearchMoreLikeThis``
 ======================
@@ -500,8 +488,7 @@ Optional:
 ``SearchMoreLikeThis`` expressions can be reused and combined with other search
 expressions.
 
-See also: :ref:`search-operations-combinable`
-
+See also: :ref:`search-operations-combinable`.
 
 ``CompoundExpression``
 ======================
@@ -544,8 +531,7 @@ Arguments:
 ``CompoundExpression`` is useful for building advanced and flexible query
     logic in Atlas Search.
 
-See also: :ref:`search-operations-combinable`
-
+See also: :ref:`search-operations-combinable`.
 
 ``CombinedSearchExpression``
 ============================
@@ -598,8 +584,8 @@ Atlas Search expressions.
 
 .. _search-operations-combinable:
 
-**Combinable expressions**
---------------------------
+Combinable expressions
+----------------------
 
 All Atlas Search expressions subclassed from ``SearchExpression``
 can be combined using Python's bitwise operators:
@@ -672,7 +658,6 @@ Arguments:
 ``SearchVector`` is typically used on its own in the ``score`` annotation and
 cannot be nested or composed.
 
-
 ``SearchScoreOption``
 =====================
 
@@ -706,7 +691,6 @@ subdocument and can be reused across multiple search expressions.
 It is typically passed as the ``score`` parameter to any search expression that
 supports it.
 
-
 The ``search`` lookup
 ======================
 
@@ -735,7 +719,7 @@ Under the hood:
 
 - The left-hand side of the lookup is wrapped into a ``SearchText`` expression.
 - The lookup compiles to a MongoDB query that filters documents with a score
-    greater or equal to zero.
+  greater or equal to zero.
 
 This allows for concise and idiomatic integration of Atlas Search within Django
 filters.
