@@ -71,7 +71,9 @@ def col(self, compiler, connection, as_path=False):  # noqa: ARG001
     # Add the column's collection's alias for columns in joined collections.
     has_alias = self.alias and self.alias != compiler.collection_name
     prefix = f"{self.alias}." if has_alias else ""
-    return f"{prefix}{self.target.column}" if as_path else f"${prefix}{self.target.column}"
+    if not as_path:
+        prefix = f"${prefix}"
+    return f"{prefix}{self.target.column}"
 
 
 def col_pairs(self, compiler, connection):

@@ -116,6 +116,18 @@ class SQLCompiler(compiler.SQLCompiler):
                 replacements[sub_expr] = self._get_replace_expr(sub_expr, searches, alias)
 
     def _prepare_search_query_for_aggregation_pipeline(self, order_by):
+        """
+        Prepare expressions for the search pipeline.
+
+        Handle the computation of search functions used by various
+        expressions. Separate and create intermediate columns, and replace
+        nodes to simulate a search operation.
+
+        MongoDB's $search or $searchVector are stages. To apply operations over them,
+        compute the $search or $vectorSearch first, then apply additional operations in a subsequent
+        stage by replacing the aggregate expressions with new document field prefixed
+        by `__search_expr.search#`.
+        """
         replacements = {}
         annotation_group_idx = itertools.count(start=1)
         for expr in self.query.annotation_select.values():
@@ -237,6 +249,15 @@ class SQLCompiler(compiler.SQLCompiler):
         return pipeline
 
     def _compound_searches_queries(self, search_replacements):
+        """
+        Builds a query pipeline from a mapping of search expressions to result columns.
+
+        Currently, only a single `$search` or `$vectorSearch` expression is supported.
+        Combining multiple search expressions is not yet allowed and will raise a ValueError.
+
+        This method will eventually support hybrid search by allowing the combination of
+        `$search` and `$vectorSearch` operations.
+        """
         if not search_replacements:
             return []
         if len(search_replacements) > 1:
@@ -250,7 +271,7 @@ class SQLCompiler(compiler.SQLCompiler):
                     "If you need to combine them, consider restructuring your query logic or "
                     "running them as separate queries."
                 )
-            if not has_search:
+            if has_vector_search:
                 raise ValueError(
                     "Cannot combine two `$vectorSearch` operator. "
                     "If you need to combine them, consider restructuring your query logic or "
@@ -312,8 +333,7 @@ class SQLCompiler(compiler.SQLCompiler):
         }
         self.order_by_objs = [expr.replace_expressions(all_replacements) for expr, _ in order_by]
         if (where := self.get_where()) and search_replacements:
-            where = where.replace_expressions(search_replacements)
-            self.set_where(where)
+            self.set_where(where.replace_expressions(search_replacements))
         return extra_select, order_by, group_by
 
     def execute_sql(

@@ -10,7 +10,7 @@ from django.db.utils import DatabaseError
 from django.test import TransactionTestCase, skipUnlessDBFeature
 from pymongo.operations import SearchIndexModel
 
-from django_mongodb_backend.expressions.search import (
+from django_mongodb_backend.expressions import (
     CompoundExpression,
     SearchAutocomplete,
     SearchEquals,
@@ -84,7 +84,7 @@ class SearchUtilsMixin(TransactionTestCase):
 
 
 @skipUnlessDBFeature("supports_atlas_search")
-class SearchEqualsTest(SearchUtilsMixin):
+class SearchEqualsTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -100,7 +100,6 @@ class SearchEqualsTest(SearchUtilsMixin):
         )
 
     def setUp(self):
-        super().setUp()
         self.article = Article.objects.create(headline="cross", number=1, body="body")
         Article.objects.create(headline="other thing", number=2, body="body")
 
@@ -110,7 +109,6 @@ class SearchEqualsTest(SearchUtilsMixin):
 
     def test_boost_score(self):
         boost_score = SearchScoreOption({"boost": {"value": 3}})
-
         qs = Article.objects.annotate(
             score=SearchEquals(path="headline", value="cross", score=boost_score)
         )
@@ -148,7 +146,7 @@ class SearchEqualsTest(SearchUtilsMixin):
 
 
 @skipUnlessDBFeature("supports_atlas_search")
-class SearchAutocompleteTest(SearchUtilsMixin):
+class SearchAutocompleteTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -186,7 +184,6 @@ class SearchAutocompleteTest(SearchUtilsMixin):
         )
 
     def setUp(self):
-        super().setUp()
         self.article = Article.objects.create(
             headline="crossing and something",
             number=2,
@@ -229,7 +226,7 @@ class SearchAutocompleteTest(SearchUtilsMixin):
 
 
 @skipUnlessDBFeature("supports_atlas_search")
-class SearchExistsTest(SearchUtilsMixin):
+class SearchExistsTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -240,7 +237,6 @@ class SearchExistsTest(SearchUtilsMixin):
         )
 
     def setUp(self):
-        super().setUp()
         self.article = Article.objects.create(headline="ignored", number=3, body="something")
 
     def test_search_exists(self):
@@ -256,7 +252,7 @@ class SearchExistsTest(SearchUtilsMixin):
 
 
 @skipUnlessDBFeature("supports_atlas_search")
-class SearchInTest(SearchUtilsMixin):
+class SearchInTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -267,7 +263,6 @@ class SearchInTest(SearchUtilsMixin):
         )
 
     def setUp(self):
-        super().setUp()
         self.article = Article.objects.create(headline="cross", number=1, body="a")
         Article.objects.create(headline="road", number=2, body="b")
 
@@ -286,7 +281,7 @@ class SearchInTest(SearchUtilsMixin):
 
 
 @skipUnlessDBFeature("supports_atlas_search")
-class SearchPhraseTest(SearchUtilsMixin):
+class SearchPhraseTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -297,7 +292,6 @@ class SearchPhraseTest(SearchUtilsMixin):
         )
 
     def setUp(self):
-        super().setUp()
         self.article = Article.objects.create(
             headline="irrelevant", number=1, body="the quick brown fox"
         )
@@ -318,7 +312,7 @@ class SearchPhraseTest(SearchUtilsMixin):
 
 
 @skipUnlessDBFeature("supports_atlas_search")
-class SearchRangeTest(SearchUtilsMixin):
+class SearchRangeTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -330,7 +324,6 @@ class SearchRangeTest(SearchUtilsMixin):
         Article.objects.create(headline="x", number=5, body="z")
 
     def setUp(self):
-        super().setUp()
         self.number20 = Article.objects.create(headline="y", number=20, body="z")
 
     def test_search_range(self):
@@ -348,7 +341,7 @@ class SearchRangeTest(SearchUtilsMixin):
 
 
 @skipUnlessDBFeature("supports_atlas_search")
-class SearchRegexTest(SearchUtilsMixin):
+class SearchRegexTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -364,7 +357,6 @@ class SearchRegexTest(SearchUtilsMixin):
         )
 
     def setUp(self):
-        super().setUp()
         self.article = Article.objects.create(headline="hello world", number=1, body="abc")
         Article.objects.create(headline="hola mundo", number=2, body="abc")
 
@@ -387,7 +379,7 @@ class SearchRegexTest(SearchUtilsMixin):
 
 
 @skipUnlessDBFeature("supports_atlas_search")
-class SearchTextTest(SearchUtilsMixin):
+class SearchTextTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -398,7 +390,6 @@ class SearchTextTest(SearchUtilsMixin):
         )
 
     def setUp(self):
-        super().setUp()
         self.article = Article.objects.create(
             headline="ignored", number=1, body="The lazy dog sleeps"
         )
@@ -437,7 +428,7 @@ class SearchTextTest(SearchUtilsMixin):
 
 
 @skipUnlessDBFeature("supports_atlas_search")
-class SearchWildcardTest(SearchUtilsMixin):
+class SearchWildcardTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -453,7 +444,6 @@ class SearchWildcardTest(SearchUtilsMixin):
         )
 
     def setUp(self):
-        super().setUp()
         self.article = Article.objects.create(headline="dark-knight", number=1, body="")
         Article.objects.create(headline="batman", number=2, body="")
 
@@ -472,7 +462,7 @@ class SearchWildcardTest(SearchUtilsMixin):
 
 
 @skipUnlessDBFeature("supports_atlas_search")
-class SearchGeoShapeTest(SearchUtilsMixin):
+class SearchGeoShapeTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -488,7 +478,6 @@ class SearchGeoShapeTest(SearchUtilsMixin):
         )
 
     def setUp(self):
-        super().setUp()
         self.article = Article.objects.create(
             headline="any", number=1, body="", location={"type": "Point", "coordinates": [40, 5]}
         )
@@ -523,7 +512,7 @@ class SearchGeoShapeTest(SearchUtilsMixin):
 
 
 @skipUnlessDBFeature("supports_atlas_search")
-class SearchGeoWithinTest(SearchUtilsMixin):
+class SearchGeoWithinTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -534,7 +523,6 @@ class SearchGeoWithinTest(SearchUtilsMixin):
         )
 
     def setUp(self):
-        super().setUp()
         self.article = Article.objects.create(
             headline="geo", number=2, body="", location={"type": "Point", "coordinates": [40, 5]}
         )
@@ -577,7 +565,7 @@ class SearchGeoWithinTest(SearchUtilsMixin):
 
 @skipUnlessDBFeature("supports_atlas_search")
 @unittest.expectedFailure
-class SearchMoreLikeThisTest(SearchUtilsMixin):
+class SearchMoreLikeThisTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -620,7 +608,7 @@ class SearchMoreLikeThisTest(SearchUtilsMixin):
 
 
 @skipUnlessDBFeature("supports_atlas_search")
-class CompoundSearchTest(SearchUtilsMixin):
+class CompoundSearchTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -640,7 +628,6 @@ class CompoundSearchTest(SearchUtilsMixin):
         )
 
     def setUp(self):
-        super().setUp()
         self.mars_mission = Article.objects.create(
             number=1,
             headline="space exploration",
@@ -785,7 +772,7 @@ class CompoundSearchTest(SearchUtilsMixin):
 
 
 @skipUnlessDBFeature("supports_atlas_search")
-class SearchVectorTest(SearchUtilsMixin):
+class SearchVectorTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -807,7 +794,6 @@ class SearchVectorTest(SearchUtilsMixin):
         )
 
     def setUp(self):
-        super().setUp()
         self.mars = Article.objects.create(
             headline="Mars landing",
             number=1,
