@@ -6,9 +6,9 @@ Atlas search
 
 .. versionadded:: 5.2.0b2
 
-The database functions in the ``django_mongodb_backend.expressions.search``
-module ease the use of MongoDB Atlas search's :doc:`full text and vector search
-engine <atlas:atlas-search>`.
+The database functions in the ``django_mongodb_backend.expressions``
+module ease the use of MongoDB Atlas search's :doc:`full text and vector
+search engine <atlas:atlas-search>`.
 
 For the examples in this document, we'll use the following models::
 
@@ -34,22 +34,24 @@ For the examples in this document, we'll use the following models::
 
 .. class:: SearchEquals(path, value, score=None)
 
-Atlas Search expression that matches documents where a field is equal to a given value.
+Atlas Search expression that matches documents where a field is equal
+to a given value.
 
-This expression uses the :doc:`equals operator <atlas:atlas-search/equals>` to perform
-exact matches on fields indexed in a MongoDB Atlas Search index.
+This expression uses the :doc:`equals operator <atlas:atlas-search/equals>`
+to perform exact matches on fields indexed in a MongoDB Atlas Search index.
 
 .. code-block:: pycon
 
-    >>> from django_mongodb_backend.expressions.search import SearchEquals
+    >>> from django_mongodb_backend.expressions import SearchEquals
     >>> Article.objects.annotate(score=SearchEquals(path="headline", value="title"))
     <QuerySet [<Article: Article object (6882f074359a4b191381b2e4)>]>
 
 The ``path`` argument can be either the name of a field (as a string), or a
-:class:`~django.db.models.expressions.Col` instance. The ``value`` argument
+:class:`~django.db.models.F` instance. The ``value`` argument
 must be a string or a :class:`~django.db.models.expressions.Value`.
 
-``SearchEquals`` objects can be reused and combined with other search expressions.
+``SearchEquals`` objects can be reused and combined with other search
+expressions.
 
 See :ref:`search-operations-combinable`.
 
@@ -58,15 +60,14 @@ See :ref:`search-operations-combinable`.
 
 Atlas Search expression that enables autocomplete behavior on string fields.
 
-This expression uses the ``autocomplete`` operator to match the input query
-against a field indexed with ``"type": "autocomplete"`` in a MongoDB Atlas
-Search index.
-
-`SearchAutocomplete docs <https://www.mongodb.com/docs/atlas/atlas-search/autocomplete/>`_
+This expression uses the
+:doc:`autocomplete operator <atlas:atlas-search/autocomplete>` to match the
+input query against a field indexed with ``"type": "autocomplete"`` in a
+MongoDB Atlas Search index.
 
 .. code-block:: pycon
 
-    >>> from django_mongodb_backend.expressions.search import SearchAutocomplete
+    >>> from django_mongodb_backend.expressions import SearchAutocomplete
     >>> Article.objects.annotate(score=SearchAutocomplete(path="headline", query="harry"))
     <QuerySet [
        <Article: title: Harry and the History of Magic>,
@@ -74,7 +75,7 @@ Search index.
     ]>
 
 The ``path`` argument specifies the field to search and can be a string or a
-:class:`~django.db.models.expressions.Col`. The ``query`` is the user input
+:class:`~django.db.models.F`. The ``query`` is the user input
 string to autocomplete and can be passed as a string or a
 :class:`~django.db.models.expressions.Value`.
 
@@ -96,15 +97,13 @@ See also: :ref:`search-operations-combinable`.
 
 Atlas Search expression that matches documents where a field exists.
 
-This expression uses the ``exists`` operator to check whether the specified
-path is present in the document. It's useful for filtering documents that
-include (or exclude) optional fields.
-
-`SearchExists docs <https://www.mongodb.com/docs/atlas/atlas-search/exists/>`_
+This expression uses the :doc:`exists operator <atlas:atlas-search/exists>`
+to check whether the specified path is present in the document. It's useful
+for filtering documents that include (or exclude) optional fields.
 
 .. code-block:: pycon
 
-    >>> from django_mongodb_backend.expressions.search import SearchExists
+    >>> from django_mongodb_backend.expressions import SearchExists
     >>> Article.objects.annotate(score=SearchExists(path="writer__name"))
     <QuerySet [
         <Article: title: Exploring Atlas Search Capabilities (by Ana)>,
@@ -112,10 +111,10 @@ include (or exclude) optional fields.
     ]>
 
 The ``path`` argument specifies the document path to check and can be provided
-as a string or a :class:`~django.db.models.expressions.Col`.
+as a string or a :class:`~django.db.models.F`.
 
-An optional ``score`` argument can be used to modify the relevance score of the
-result.
+An optional ``score`` argument can be used to modify the relevance score of
+the result.
 
 ``SearchExists`` expressions can be reused and combined with other search
 expressions.
@@ -128,14 +127,12 @@ See also: :ref:`search-operations-combinable`.
 Atlas Search expression that matches documents where a field's value is in a
 given list.
 
-This expression uses the ``in`` operator to match documents whose field
-contains a value from the provided array.
-
-`SearchIn docs <https://www.mongodb.com/docs/atlas/atlas-search/in/>`_
+This expression uses the :doc:`in operator <atlas:atlas-search/in>` to match
+documents whose field contains a value from the provided array.
 
 .. code-block:: pycon
 
-    >>> from django_mongodb_backend.expressions.search import SearchIn
+    >>> from django_mongodb_backend.expressions import SearchIn
     >>> Article.objects.annotate(score=SearchIn(path="number", value=[1, 2]))
     <QuerySet [
         <Article: title: Introduction to Atlas Search (number=1)>,
@@ -143,7 +140,7 @@ contains a value from the provided array.
     ]>
 
 The ``path`` argument can be the name of a field (as a string) or a
-:class:`~django.db.models.expressions.Col`. The ``value`` must be a list
+:class:`~django.db.models.F`. The ``value`` must be a list
 of values or a :class:`~django.db.models.expressions.Value`.
 
 An optional ``score`` argument can be used to customize relevance scoring.
@@ -158,15 +155,13 @@ See also: :ref:`search-operations-combinable`.
 
 Atlas Search expression that matches a phrase in the specified field.
 
-This expression uses the ``phrase`` operator to find exact or near-exact
-sequences of terms. It supports optional slop (term distance) and synonym
-mappings defined in the Atlas Search index.
-
-`SearchPhrase docs <https://www.mongodb.com/docs/atlas/atlas-search/phrase/>`_
+This expression uses the :doc:`phrase operator <atlas:atlas-search/phrase>` to
+find exact or near-exact sequences of terms. It supports optional slop
+(term distance) and synonym mappings defined in the Atlas Search index.
 
 .. code-block:: pycon
 
-    >>> from django_mongodb_backend.expressions.search import SearchPhrase
+    >>> from django_mongodb_backend.expressions import SearchPhrase
     >>> Article.objects.annotate(
     ...     score=SearchPhrase(path="body", query="climate change", slop=2)
     ... )
@@ -176,7 +171,7 @@ mappings defined in the Atlas Search index.
     ]>
 
 The ``path`` argument specifies the field to search and can be a string or a
-:class:`~django.db.models.expressions.Col`. The ``query`` is the phrase to
+:class:`~django.db.models.F`. The ``query`` is the phrase to
 match, passed as a string or a list of strings (terms).
 
 Optional arguments:
@@ -195,15 +190,14 @@ See also: :ref:`search-operations-combinable`.
 
 Atlas Search expression that matches using a Lucene-style query string.
 
-This expression uses the ``queryString`` operator to parse and execute
-full-text queries written in a simplified Lucene syntax. It supports features
-like boolean operators, wildcards, and field-specific terms.
-
-`SearchQueryString docs <https://www.mongodb.com/docs/atlas/atlas-search/queryString/>`_
+This expression uses the
+:doc:`queryString operator <atlas:atlas-search/queryString>` to parse and
+execute full-text queries written in a simplified Lucene syntax. It supports
+features like boolean operators, wildcards, and field-specific terms.
 
 .. code-block:: pycon
 
-    >>> from django_mongodb_backend.expressions.search import SearchQueryString
+    >>> from django_mongodb_backend.expressions import SearchQueryString
     >>> Article.objects.annotate(
     ...     score=SearchQueryString(path="body", query="django AND (search OR query)")
     ... )
@@ -213,7 +207,7 @@ like boolean operators, wildcards, and field-specific terms.
     ]>
 
 The ``path`` argument can be a string or a
-:class:`~django.db.models.expressions.Col` representing the field to query.
+:class:`~django.db.models.F` representing the field to query.
 The ``query`` argument is a Lucene-style query string.
 
 An optional ``score`` argument may be used to adjust relevance scoring.
@@ -229,14 +223,13 @@ See also: :ref:`search-operations-combinable`.
 Atlas Search expression that filters documents within a specified range of
 values.
 
-This expression uses the ``range`` operator to match numeric, date, or other
-comparable fields based on upper and/or lower bounds.
-
-`SearchRange docs <https://www.mongodb.com/docs/atlas/atlas-search/range/>`_
+This expression uses the :doc:`range operator <atlas:atlas-search/range>` to
+match numeric, date, or other comparable fields based on upper and/or lower
+bounds.
 
 .. code-block:: pycon
 
-    >>> from django_mongodb_backend.expressions.search import SearchRange
+    >>> from django_mongodb_backend.expressions import SearchRange
     >>> Article.objects.annotate(score=SearchRange(path="number", gte=2000, lt=2020))
     <QuerySet [
         <Article: title: Data Trends from the Early 2000s (number=2003)>,
@@ -244,7 +237,7 @@ comparable fields based on upper and/or lower bounds.
     ]>
 
 The ``path`` argument specifies the field to filter and can be a string or a
-:class:`~django.db.models.expressions.Col`.
+:class:`~django.db.models.F`.
 
 Optional arguments:
 
@@ -264,14 +257,12 @@ See also: :ref:`search-operations-combinable`.
 
 Atlas Search expression that matches string fields using a regular expression.
 
-This expression uses the ``regex`` operator to apply a regular expression
-pattern to the contents of a specified field.
-
-`SearchRegex docs <https://www.mongodb.com/docs/atlas/atlas-search/regex/>`_
+This expression uses the :doc:`regex operator <atlas:atlas-search/regex>` to
+apply a regular expression pattern to the contents of a specified field.
 
 .. code-block:: pycon
 
-    >>> from django_mongodb_backend.expressions.search import SearchRegex
+    >>> from django_mongodb_backend.expressions import SearchRegex
     >>> Article.objects.annotate(score=SearchRegex(path="headline", query=r"^Breaking_"))
     <QuerySet [
         <Article: title: Breaking_News: MongoDB Release Update>,
@@ -279,7 +270,7 @@ pattern to the contents of a specified field.
     ]>
 
 The ``path`` argument specifies the field to search and can be provided as a
-string or a :class:`~django.db.models.expressions.Col`. The ``query`` is a
+string or a :class:`~django.db.models.F`. The ``query`` is a
 regular expression string that will be applied to the field contents.
 
 Optional arguments:
@@ -296,17 +287,15 @@ See also: :ref:`search-operations-combinable`.
 ``SearchText``
 ==============
 
-Atlas Search expression that performs full-text search using the ``text``
-operator.
+Atlas Search expression that performs full-text search using the :doc:`text
+operator <atlas:atlas-search/text>`.
 
 This expression matches terms in the specified field and supports fuzzy
 matching, match criteria, and synonym mappings.
 
-`SearchText docs <https://www.mongodb.com/docs/atlas/atlas-search/text/>`_
-
 .. code-block:: pycon
 
-    >>> from django_mongodb_backend.expressions.search import SearchText
+    >>> from django_mongodb_backend.expressions import SearchText
     >>> Article.objects.annotate(
     ...     score=SearchText(
     ...         path="body", query="mongodb", fuzzy={"maxEdits": 1}, match_criteria="all"
@@ -318,7 +307,7 @@ matching, match criteria, and synonym mappings.
     ]>
 
 The ``path`` argument specifies the field to search and can be provided as a
-string or a :class:`~django.db.models.expressions.Col`. The ``query`` argument
+string or a :class:`~django.db.models.F`. The ``query`` argument
 is the search term or phrase.
 
 Optional arguments:
@@ -340,15 +329,14 @@ See also: :ref:`search-operations-combinable`
 
 Atlas Search expression that matches strings using wildcard patterns.
 
-This expression uses the ``wildcard`` operator to search for terms matching
-a pattern with ``*`` (any sequence of characters) and ``?`` (any single
-character) wildcards.
-
-`SearchWildcard docs <https://www.mongodb.com/docs/atlas/atlas-search/wildcard/>`_.
+This expression uses the
+:doc:`wildcard operator <atlas:atlas-search/wildcard>` to search for terms
+matching a pattern with ``*`` (any sequence of characters) and ``?`` (any
+single character) wildcards.
 
 .. code-block:: pycon
 
-    >>> from django_mongodb_backend.expressions.search import SearchWildcard
+    >>> from django_mongodb_backend.expressions import SearchWildcard
     >>> Article.objects.annotate(
     ...     score=SearchWildcard(path="headline", query="report_202?_final*")
     ... )
@@ -358,7 +346,7 @@ character) wildcards.
     ]>
 
 The ``path`` argument specifies the field to search and can be a string or a
-:class:`~django.db.models.expressions.Col`. The ``query`` is a wildcard string
+:class:`~django.db.models.F`. The ``query`` is a wildcard string
 that may include ``*`` and ``?``.
 
 Optional arguments:
@@ -378,14 +366,14 @@ See also: :ref:`search-operations-combinable`.
 Atlas Search expression that filters documents based on spatial relationships
 with a geometry.
 
-This expression uses the :doc:geoShape operator <atlas:atlas-search/geoShape>` to match documents where a geo
-field has a specified spatial relation to a given GeoJSON geometry.
-
-`SearchGeoShape docs <https://www.mongodb.com/docs/atlas/atlas-search/geoShape/>`_.
+This expression uses the
+:doc:`geoShape operator <atlas:atlas-search/geoShape>` to match documents
+where a geo field has a specified spatial relation to a given GeoJSON
+geometry.
 
 .. code-block:: pycon
 
-    >>> from django_mongodb_backend.expressions.search import SearchGeoShape
+    >>> from django_mongodb_backend.expressions import SearchGeoShape
     >>> polygon = {"type": "Polygon", "coordinates": [[[0, 0], [3, 6], [6, 1], [0, 0]]]}
     >>> Article.objects.annotate(
     ...     score=SearchGeoShape(path="location", relation="within", geometry=polygon)
@@ -396,7 +384,7 @@ field has a specified spatial relation to a given GeoJSON geometry.
     ]>
 
 The ``path`` argument specifies the field to filter and can be a string or a
-:class:`~django.db.models.expressions.Col`.
+:class:`~django.db.models.F`.
 
 Required arguments:
 
@@ -416,17 +404,16 @@ See also: :ref:`search-operations-combinable`.
 ``SearchGeoWithin``
 ===================
 
-Atlas Search expression that filters documents with geo fields contained within
-a specified shape.
+Atlas Search expression that filters documents with geo fields contained
+within a specified shape.
 
-This expression uses the ``geoWithin`` operator to match documents where the
-geo field lies entirely within the provided GeoJSON geometry.
-
-`SearchGeoWithin docs <https://www.mongodb.com/docs/atlas/atlas-search/geoWithin/>`_
+This expression uses the
+:doc:`geoWithin operator <atlas:atlas-search/geoWithin>` to match documents
+where the geo field lies entirely within the provided GeoJSON geometry.
 
 .. code-block:: pycon
 
-    >>> from django_mongodb_backend.expressions.search import SearchGeoWithin
+    >>> from django_mongodb_backend.expressions import SearchGeoWithin
     >>> polygon = {"type": "Polygon", "coordinates": [[[0, 0], [3, 6], [6, 1], [0, 0]]]}
     >>> Article.objects.annotate(
     ...     score=SearchGeoWithin(path="location", kind="Polygon", geo_object=polygon)
@@ -437,7 +424,7 @@ geo field lies entirely within the provided GeoJSON geometry.
     ]>
 
 The ``path`` argument specifies the geo field to filter and can be a string or
-a :class:`~django.db.models.expressions.Col`.
+a :class:`~django.db.models.F`.
 
 Required arguments:
 
@@ -458,15 +445,14 @@ See also: :ref:`search-operations-combinable`.
 
 Atlas Search expression that finds documents similar to the provided examples.
 
-This expression uses the ``moreLikeThis`` operator to retrieve documents that
-resemble one or more example documents.
-
-`SearchMoreLikeThis docs <https://www.mongodb.com/docs/atlas/atlas-search/morelikethis/>`_
+This expression uses the
+:doc:`moreLikeThis operator <atlas:atlas-search/morelikethis>` to retrieve
+documents that resemble one or more example documents.
 
 .. code-block:: pycon
 
     >>> from bson import ObjectId
-    >>> from django_mongodb_backend.expressions.search import SearchMoreLikeThis
+    >>> from django_mongodb_backend.expressions import SearchMoreLikeThis
     >>> Article.objects.annotate(
     ...     score=SearchMoreLikeThis(
     ...         [{"_id": ObjectId("66cabc1234567890abcdefff")}, {"title": "Example"}]
@@ -485,8 +471,8 @@ Optional:
 - ``score``: An optional expression to adjust the relevance score of the
   results.
 
-``SearchMoreLikeThis`` expressions can be reused and combined with other search
-expressions.
+``SearchMoreLikeThis`` expressions can be reused and combined with other
+search expressions.
 
 See also: :ref:`search-operations-combinable`.
 
@@ -495,16 +481,15 @@ See also: :ref:`search-operations-combinable`.
 
 Compound expression that combines multiple search clauses using boolean logic.
 
-This expression uses the ``compound`` operator in MongoDB Atlas Search to
-combine sub-expressions with ``must``, ``must_not``, ``should``, and ``filter``
-clauses. It enables fine-grained control over how multiple conditions
-contribute to document matching and scoring.
-
-`CompoundExpression docs <https://www.mongodb.com/docs/atlas/atlas-search/compound/>`_
+This expression uses the
+:doc:`compound operator <atlas:atlas-search/compound>` in MongoDB Atlas Search
+to combine sub-expressions with ``must``, ``must_not``, ``should``, and
+``filter`` clauses. It enables fine-grained control over how multiple
+conditions contribute to document matching and scoring.
 
 .. code-block:: pycon
 
-    >>> from django_mongodb_backend.expressions.search import CompoundExpression, SearchText
+    >>> from django_mongodb_backend.expressions import CompoundExpression, SearchText
     >>> expr1 = SearchText("headline", "mongodb")
     >>> expr2 = SearchText("body", "atlas")
     >>> expr3 = SearchText("body", "deprecated")
@@ -536,7 +521,8 @@ See also: :ref:`search-operations-combinable`.
 ``CombinedSearchExpression``
 ============================
 
-Expression that combines two Atlas Search expressions using a boolean operator.
+Expression that combines two Atlas Search expressions using a boolean
+operator.
 
 This expression is used internally when combining search expressions with
 Python’s bitwise operators (``&``, ``|``, ``~``), and corresponds to
@@ -548,7 +534,7 @@ logical operators such as ``and``, ``or``, and ``not``.
 
 .. code-block:: pycon
 
-    >>> from django_mongodb_backend.expressions.search import CombinedSearchExpression
+    >>> from django_mongodb_backend.expressions import CombinedSearchExpression
     >>> expr1 = SearchText("headline", "mongodb")
     >>> expr2 = SearchText("body", "atlas")
     >>> CombinedSearchExpression(expr1, "and", expr2)
@@ -575,8 +561,8 @@ logical operators such as ``and``, ``or``, and ``not``.
 Args:
 
 - ``lhs``: The left-hand side search expression.
-- ``operator``: A string representing the logical operator (``"and"``, ``"or"``
-  , or ``"not"``).
+- ``operator``: A string representing the logical operator (``"and"``,
+  ``"or"``, or ``"not"``).
 - ``rhs``: The right-hand side search expression.
 
 This is the underlying expression used to support operator overloading in
@@ -616,16 +602,14 @@ expressions.
 ================
 
 Atlas Search expression that performs vector similarity search using the
-``$vectorSearch`` stage.
+:doc:`$vectorSearch stage <atlas:atlas-vector-search/vector-search-stage>`.
 
 This expression retrieves documents whose vector field is most similar to a
 given query vector, using either approximate or exact nearest-neighbor search.
 
-`SearchVector docs <https://www.mongodb.com/docs/atlas/atlas-vector-search/vector-search-stage/>`_
-
 .. code-block:: pycon
 
-    >>> from django_mongodb_backend.expressions.search import SearchVector
+    >>> from django_mongodb_backend.expressions import SearchVector
     >>> Article.objects.annotate(
     ...     score=SearchVector(
     ...         path="plot_embedding",
@@ -640,7 +624,7 @@ given query vector, using either approximate or exact nearest-neighbor search.
 Arguments:
 
 - ``path``: The document path to the vector field (string or
-  :class:`~django.db.models.expressions.Col`).
+  :class:`~django.db.models.F`).
 - ``query_vector``: The input vector used for similarity comparison.
 - ``limit``: The maximum number of matching documents to return.
 - ``num_candidates``: (Optional) The number of candidate documents considered
@@ -667,13 +651,12 @@ expression.
 This expression can be passed to most Atlas Search operators through the
 ``score`` argument to customize how MongoDB calculates and applies scoring.
 
-It directly maps to the ``score`` option of the relevant Atlas Search operator.
-
-`SearchScoreOption docs: <https://www.mongodb.com/docs/atlas/atlas-search/scoring/>`_
+It directly maps to the :doc:`score option <atlas:atlas-search/scoring/>` of
+the relevant Atlas Search operator.
 
 .. code-block:: pycon
 
-    >>> from django_mongodb_backend.expressions.search import SearchText, SearchScoreOption
+    >>> from django_mongodb_backend.expressions import SearchText, SearchScoreOption
     >>> boost = SearchScoreOption({"boost": {"value": 5}})
     >>> Article.objects.annotate(score=SearchText(path="body", query="django", score=boost))
     <QuerySet [<Article: Article object (6882f074359a4b191381b2e4)>]>
@@ -688,8 +671,8 @@ Accepted options depend on the underlying operator and may include:
 The ``SearchScoreOption`` is a low-level utility used to build the ``score``
 subdocument and can be reused across multiple search expressions.
 
-It is typically passed as the ``score`` parameter to any search expression that
-supports it.
+It is typically passed as the ``score`` parameter to any search expression
+that supports it.
 
 The ``search`` lookup
 ======================
@@ -698,8 +681,8 @@ Django lookup to enable Atlas Search full-text querying via the ``search``
 lookup.
 
 This lookup allows using the ``search`` lookup on Django ``CharField`` and
-``TextField`` to perform Atlas Search ``text`` queries seamlessly within Django
-ORM filters.
+``TextField`` to perform Atlas Search ``text`` queries seamlessly within
+Django ORM filters.
 
 It internally creates a ``SearchText`` expression on the left-hand side and
 compares its score with zero to filter matching documents.
@@ -721,5 +704,5 @@ Under the hood:
 - The lookup compiles to a MongoDB query that filters documents with a score
   greater or equal to zero.
 
-This allows for concise and idiomatic integration of Atlas Search within Django
-filters.
+This allows for concise and idiomatic integration of Atlas Search within
+Django filters.
