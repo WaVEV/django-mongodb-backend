@@ -28,7 +28,18 @@ from django_mongodb_backend.expressions import (
     SearchWildcard,
 )
 
-from .models import Article, Writer
+from .models import Article, Location, Writer
+
+
+def wait_until_index_ready(collection, index_name, timeout: float = 30, interval: float = 0.5):
+    start = monotonic()
+    while monotonic() - start < timeout:
+        indexes = list(collection.list_search_indexes())
+        for idx in indexes:
+            if idx["name"] == index_name and idx["status"] == "READY":
+                return True
+        sleep(interval)
+    raise TimeoutError(f"Index {index_name} not ready after {timeout} seconds")
 
 
 def _delayed_assertion(timeout: float = 120, interval: float = 0.5):
@@ -76,6 +87,7 @@ class SearchUtilsMixin(TransactionTestCase):
         collection = cls._get_collection(model)
         idx = SearchIndexModel(definition=definition, name=index_name, type=type)
         collection.create_search_index(idx)
+        wait_until_index_ready(collection, index_name)
 
         def drop_index():
             collection.drop_search_index(index_name)
@@ -479,10 +491,13 @@ class SearchGeoShapeTests(SearchUtilsMixin):
 
     def setUp(self):
         self.article = Article.objects.create(
-            headline="any", number=1, body="", location={"type": "Point", "coordinates": [40, 5]}
+            headline="any", number=1, body="", location=Location(type="Point", coordinates=[40, 5])
         )
         Article.objects.create(
-            headline="any", number=2, body="", location={"type": "Point", "coordinates": [400, 50]}
+            headline="any",
+            number=2,
+            body="",
+            location=Location(type="Point", coordinates=[400, 50]),
         )
 
     def test_search_geo_shape(self):
@@ -524,10 +539,13 @@ class SearchGeoWithinTests(SearchUtilsMixin):
 
     def setUp(self):
         self.article = Article.objects.create(
-            headline="geo", number=2, body="", location={"type": "Point", "coordinates": [40, 5]}
+            headline="geo", number=2, body="", location=Location(type="Point", coordinates=[40, 5])
         )
         Article.objects.create(
-            headline="geo2", number=3, body="", location={"type": "Point", "coordinates": [-40, -5]}
+            headline="geo2",
+            number=3,
+            body="",
+            location=Location(type="Point", coordinates=[-40, -5]),
         )
 
     def test_search_geo_within(self):
@@ -598,7 +616,6 @@ class SearchMoreLikeThisTests(SearchUtilsMixin):
             {"headline": self.article1.headline, "body": self.article1.body},
             {"headline": self.article2.headline, "body": self.article2.body},
         ]
-        like_docs = [{"body": "NASA launches new satellite to explore the galaxy"}]
         qs = Article.objects.annotate(score=SearchMoreLikeThis(documents=like_docs)).order_by(
             "score"
         )
