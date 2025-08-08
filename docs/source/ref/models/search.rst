@@ -44,7 +44,7 @@ to perform exact matches on fields indexed in a MongoDB Atlas Search index.
 
     >>> from django_mongodb_backend.expressions import SearchEquals
     >>> Article.objects.annotate(score=SearchEquals(path="headline", value="title"))
-    <QuerySet [<Article: Article object (6882f074359a4b191381b2e4)>]>
+    <QuerySet [<Article: headline: title>]>
 
 The ``path`` argument can be either the name of a field (as a string), or a
 :class:`~django.db.models.F` instance. The ``value`` argument
@@ -389,7 +389,7 @@ The ``path`` argument specifies the field to filter and can be a string or a
 Required arguments:
 
 - ``relation``: The spatial relation to test. Valid values include
-    ``"within"``, ``"intersects"``, and ``"disjoint"``.
+  ``"within"``, ``"intersects"``, and ``"disjoint"``.
 - ``geometry``: A GeoJSON geometry object to compare against.
 
 Optional:
@@ -436,7 +436,7 @@ Optional:
 - ``score``: An optional expression to adjust the relevance score.
 
 ``SearchGeoWithin`` expressions can be reused and combined with other search
-    expressions.
+expressions.
 
 See also: :ref:`search-operations-combinable`.
 
@@ -506,15 +506,15 @@ Arguments:
 - ``must``: A list of expressions that **must** match.
 - ``must_not``: A list of expressions that **must not** match.
 - ``should``: A list of optional expressions that **should** match.
-    These can improve scoring.
+  These can improve scoring.
 - ``filter``: A list of expressions used for filtering without affecting
-    relevance scoring.
+  relevance scoring.
 - ``minimum_should_match``: The minimum number of ``should`` clauses that
-    must match.
+  must match.
 - ``score``: An optional expression to adjust the final score.
 
 ``CompoundExpression`` is useful for building advanced and flexible query
-    logic in Atlas Search.
+logic in Atlas Search.
 
 See also: :ref:`search-operations-combinable`.
 
