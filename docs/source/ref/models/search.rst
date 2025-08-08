@@ -48,7 +48,7 @@ to perform exact matches on fields indexed in a MongoDB Atlas Search index.
 
 The ``path`` argument can be either the name of a field (as a string), or a
 :class:`~django.db.models.F` instance. The ``value`` argument
-must be a string or a :class:`~django.db.models.expressions.Value`.
+must be a string or a :class:`~django.db.models.Value`.
 
 ``SearchEquals`` objects can be reused and combined with other search
 expressions.
@@ -77,7 +77,7 @@ MongoDB Atlas Search index.
 The ``path`` argument specifies the field to search and can be a string or a
 :class:`~django.db.models.F`. The ``query`` is the user input
 string to autocomplete and can be passed as a string or a
-:class:`~django.db.models.expressions.Value`.
+:class:`~django.db.models.Value`.
 
 Optional arguments:
 
@@ -141,7 +141,7 @@ documents whose field contains a value from the provided array.
 
 The ``path`` argument can be the name of a field (as a string) or a
 :class:`~django.db.models.F`. The ``value`` must be a list
-of values or a :class:`~django.db.models.expressions.Value`.
+of values or a :class:`~django.db.models.Value`.
 
 An optional ``score`` argument can be used to customize relevance scoring.
 
@@ -651,7 +651,7 @@ expression.
 This expression can be passed to most Atlas Search operators through the
 ``score`` argument to customize how MongoDB calculates and applies scoring.
 
-It directly maps to the :doc:`score option <atlas:atlas-search/scoring/>` of
+It directly maps to the :doc:`score option <atlas:atlas-search/scoring>` of
 the relevant Atlas Search operator.
 
 .. code-block:: pycon
