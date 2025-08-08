@@ -70,7 +70,7 @@ def _delayed_assertion(timeout: float = 120, interval: float = 0.5):
 
 @skipUnlessDBFeature("supports_atlas_search")
 class SearchUtilsMixin(TransactionTestCase):
-    available_apps = ["queries_"]
+    available_apps = None
 
     assertCountEqual = _delayed_assertion(timeout=2)(TransactionTestCase.assertCountEqual)
     assertListEqual = _delayed_assertion(timeout=2)(TransactionTestCase.assertListEqual)
@@ -93,7 +93,6 @@ class SearchUtilsMixin(TransactionTestCase):
         cls.addClassCleanup(drop_index)
 
 
-@skipUnlessDBFeature("supports_atlas_search")
 class SearchEqualsTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
@@ -155,7 +154,6 @@ class SearchEqualsTests(SearchUtilsMixin):
         self.assertAlmostEqual(scored.score, 1.0, places=2)
 
 
-@skipUnlessDBFeature("supports_atlas_search")
 class SearchAutocompleteTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
@@ -235,7 +233,6 @@ class SearchAutocompleteTests(SearchUtilsMixin):
         self.assertAlmostEqual(scored.score, 10.0, places=2)
 
 
-@skipUnlessDBFeature("supports_atlas_search")
 class SearchExistsTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
@@ -261,7 +258,6 @@ class SearchExistsTests(SearchUtilsMixin):
         self.assertAlmostEqual(scored.score, 10.0, places=2)
 
 
-@skipUnlessDBFeature("supports_atlas_search")
 class SearchInTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
@@ -290,7 +286,6 @@ class SearchInTests(SearchUtilsMixin):
         self.assertAlmostEqual(scored.score, 10.0, places=2)
 
 
-@skipUnlessDBFeature("supports_atlas_search")
 class SearchPhraseTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
@@ -321,7 +316,6 @@ class SearchPhraseTests(SearchUtilsMixin):
         self.assertAlmostEqual(scored.score, 10.0, places=2)
 
 
-@skipUnlessDBFeature("supports_atlas_search")
 class SearchRangeTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
@@ -350,7 +344,6 @@ class SearchRangeTests(SearchUtilsMixin):
         self.assertAlmostEqual(scored.score, 10.0, places=2)
 
 
-@skipUnlessDBFeature("supports_atlas_search")
 class SearchRegexTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
@@ -388,7 +381,6 @@ class SearchRegexTests(SearchUtilsMixin):
         self.assertAlmostEqual(scored.score, 10.0, places=2)
 
 
-@skipUnlessDBFeature("supports_atlas_search")
 class SearchTextTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
@@ -437,7 +429,6 @@ class SearchTextTests(SearchUtilsMixin):
         self.assertAlmostEqual(scored.score, 10.0, places=2)
 
 
-@skipUnlessDBFeature("supports_atlas_search")
 class SearchWildcardTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
@@ -471,7 +462,6 @@ class SearchWildcardTests(SearchUtilsMixin):
         self.assertAlmostEqual(scored.score, 10.0, places=2)
 
 
-@skipUnlessDBFeature("supports_atlas_search")
 class SearchGeoShapeTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
@@ -524,7 +514,6 @@ class SearchGeoShapeTests(SearchUtilsMixin):
         self.assertAlmostEqual(scored.score, 10.0, places=2)
 
 
-@skipUnlessDBFeature("supports_atlas_search")
 class SearchGeoWithinTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
@@ -579,7 +568,6 @@ class SearchGeoWithinTests(SearchUtilsMixin):
         self.assertAlmostEqual(scored.score, 10.0, places=2)
 
 
-@skipUnlessDBFeature("supports_atlas_search")
 @unittest.expectedFailure
 class SearchMoreLikeThisTests(SearchUtilsMixin):
     @classmethod
@@ -620,7 +608,6 @@ class SearchMoreLikeThisTests(SearchUtilsMixin):
         self.assertQuerySetEqual(qs.all, [self.article1, self.article2], lambda a: a.headline)
 
 
-@skipUnlessDBFeature("supports_atlas_search")
 class CompoundSearchTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
@@ -784,7 +771,6 @@ class CompoundSearchTests(SearchUtilsMixin):
         self.assertCountEqual(qs.all, [self.icy_moons])
 
 
-@skipUnlessDBFeature("supports_atlas_search")
 class SearchVectorTests(SearchUtilsMixin):
     @classmethod
     def setUpClass(cls):
