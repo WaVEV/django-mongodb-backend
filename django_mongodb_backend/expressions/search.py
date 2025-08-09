@@ -141,7 +141,8 @@ class SearchAutocomplete(SearchExpression):
         fuzzy: Optional dictionary of fuzzy matching parameters.
         token_order: Optional value for `"tokenOrder"`; controls sequential vs.
             any-order token matching.
-        score: Optional expression to adjust score relevance (e.g., `{"boost": {"value": 5}}`).
+        score: Optional[SearchScore] expression to adjust score relevance
+            (e.g., `{"boost": {"value": 5}}`).
 
     Reference: https://www.mongodb.com/docs/atlas/atlas-search/autocomplete/
     """
@@ -179,7 +180,8 @@ class SearchAutocomplete(SearchExpression):
 
 class SearchEquals(SearchExpression):
     """
-    Atlas Search expression that matches documents with a field equal to the given value.
+    Atlas Search expression that matches documents with a field equal to
+    the given value.
 
     This expression uses the `equals` operator to perform exact matches
     on fields indexed in a MongoDB Atlas Search index.
@@ -190,7 +192,7 @@ class SearchEquals(SearchExpression):
     Args:
         path: The document path to compare (as string or expression).
         value: The exact value to match against.
-        score: Optional expression to modify the relevance score.
+        score: Optional[SearchScore] expression to modify the relevance score.
 
     Reference: https://www.mongodb.com/docs/atlas/atlas-search/equals/
     """
@@ -233,7 +235,7 @@ class SearchExists(SearchExpression):
 
     Args:
         path: The document path to check (as string or expression).
-        score: Optional expression to modify the relevance score.
+        score: Optional[SearchScore] expression to modify the relevance score.
 
     Reference: https://www.mongodb.com/docs/atlas/atlas-search/exists/
     """
@@ -263,7 +265,8 @@ class SearchExists(SearchExpression):
 
 class SearchIn(SearchExpression):
     """
-    Atlas Search expression that matches documents where the field value is in a given list.
+    Atlas Search expression that matches documents where the field value
+    is in a given list.
 
     This expression uses the `in` operator to match documents whose field
     contains a value from the provided array of values.
@@ -274,7 +277,7 @@ class SearchIn(SearchExpression):
     Args:
         path: The document path to match against (as string or expression).
         value: A list of values to check for membership.
-        score: Optional expression to adjust the relevance score.
+        score: Optional[SearchScore] expression to adjust the relevance score.
 
     Reference: https://www.mongodb.com/docs/atlas/atlas-search/in/
     """
@@ -309,7 +312,8 @@ class SearchPhrase(SearchExpression):
     Atlas Search expression that matches a phrase in the specified field.
 
     This expression uses the `phrase` operator to search for exact or near exact
-    sequences of terms. It supports optional slop (word distance) and synonym sets.
+    sequences of terms. It supports optional slop (word distance)
+    and synonym sets.
 
     Example:
         SearchPhrase("description__text", "climate change", slop=2)
@@ -318,8 +322,9 @@ class SearchPhrase(SearchExpression):
         path: The document path to search (as string or expression).
         query: The phrase to match as a single string or list of terms.
         slop: Optional maximum word distance allowed between phrase terms.
-        synonyms: Optional name of a synonym mapping defined in the Atlas index.
-        score: Optional expression to modify the relevance score.
+        synonyms: Optional name of a synonym mapping defined in the
+            Atlas index.
+        score: Optional[SearchScore] expression to modify the relevance score.
 
     Reference: https://www.mongodb.com/docs/atlas/atlas-search/phrase/
     """
@@ -361,7 +366,8 @@ class SearchQueryString(SearchExpression):
 
     This expression uses the `queryString` operator to parse and execute
     full-text queries written in a simplified Lucene syntax. It supports
-    advanced constructs like boolean operators, wildcards, and field-specific terms.
+    advanced constructs like boolean operators, wildcards,
+    and field-specific terms.
 
     Example:
         SearchQueryString("content__text", "django AND (search OR query)")
@@ -369,7 +375,7 @@ class SearchQueryString(SearchExpression):
     Args:
         path: The document path to query (as string or expression).
         query: The Lucene-style query string.
-        score: Optional expression to modify the relevance score.
+        score: Optional[SearchScore] expression to modify the relevance score.
 
     Reference: https://www.mongodb.com/docs/atlas/atlas-search/queryString/
     """
@@ -415,7 +421,7 @@ class SearchRange(SearchExpression):
         lte: Optional inclusive upper bound (`<=`).
         gt: Optional exclusive lower bound (`>`).
         gte: Optional inclusive lower bound (`>=`).
-        score: Optional expression to modify the relevance score.
+        score: Optional[SearchScore] expression to modify the relevance score.
 
     Reference: https://www.mongodb.com/docs/atlas/atlas-search/range/
     """
@@ -468,8 +474,9 @@ class SearchRegex(SearchExpression):
     Args:
         path: The document path to match (as string or expression).
         query: The regular expression pattern to apply.
-        allow_analyzed_field: Whether to allow matching against analyzed fields (default is False).
-        score: Optional expression to modify the relevance score.
+        allow_analyzed_field: Whether to allow matching against analyzed
+            fields (default is False).
+        score: Optional[SearchScore] expression to modify the relevance score.
 
     Reference: https://www.mongodb.com/docs/atlas/atlas-search/regex/
     """
@@ -510,15 +517,22 @@ class SearchText(SearchExpression):
     fuzzy matching, match criteria, and synonyms.
 
     Example:
-        SearchText("description__content", "mongodb", fuzzy={"maxEdits": 1}, match_criteria="all")
+        SearchText(
+            "description__content",
+            "mongodb",
+            fuzzy={"maxEdits": 1},
+            match_criteria="all"
+        )
 
     Args:
         path: The document path to search (as string or expression).
         query: The search term or phrase.
         fuzzy: Optional dictionary to configure fuzzy matching parameters.
-        match_criteria: Optional criteria for term matching (e.g., "all" or "any").
-        synonyms: Optional name of a synonym mapping defined in the Atlas index.
-        score: Optional expression to adjust relevance scoring.
+        match_criteria: Optional criteria for term matching
+            (e.g., "all" or "any").
+        synonyms: Optional name of a synonym mapping defined in the
+            Atlas index.
+        score: Optional[SearchScore] expression to adjust relevance scoring.
 
     Reference: https://www.mongodb.com/docs/atlas/atlas-search/text/
     """
@@ -570,8 +584,9 @@ class SearchWildcard(SearchExpression):
     Args:
         path: The document path to search (as string or expression).
         query: The wildcard pattern to match.
-        allow_analyzed_field: Whether to allow matching against analyzed fields (default is False).
-        score: Optional expression to modify the relevance score.
+        allow_analyzed_field: Whether to allow matching against analyzed
+            fields (default is False).
+        score: Optional[SearchScore] expression to modify the relevance score.
 
     Reference: https://www.mongodb.com/docs/atlas/atlas-search/wildcard/
     """
@@ -606,19 +621,22 @@ class SearchWildcard(SearchExpression):
 
 class SearchGeoShape(SearchExpression):
     """
-    Atlas Search expression that filters documents by spatial relationship with a geometry.
+    Atlas Search expression that filters documents by spatial relationship
+    with a geometry.
 
     This expression uses the `geoShape` operator to match documents where
     a geo field relates to a specified geometry by a spatial relation.
 
     Example:
-        SearchGeoShape("location", "within", {"type": "Polygon", "coordinates": [...]})
+        SearchGeoShape("location", "within",
+                       {"type": "Polygon", "coordinates": [...]})
 
     Args:
         path: The document path to the geo field (as string or expression).
-        relation: The spatial relation to test (e.g., "within", "intersects", "disjoint").
+        relation: The spatial relation to test
+            (e.g., "within", "intersects", "disjoint").
         geometry: The GeoJSON geometry to compare against.
-        score: Optional expression to modify the relevance score.
+        score: Optional[SearchScore] expression to modify the relevance score.
 
     Reference: https://www.mongodb.com/docs/atlas/atlas-search/geoShape/
     """
@@ -659,13 +677,14 @@ class SearchGeoWithin(SearchExpression):
     the geo field lies entirely within the given geometry.
 
     Example:
-        SearchGeoWithin("location", "Polygon", {"type": "Polygon", "coordinates": [...]})
+        SearchGeoWithin("location", "Polygon",
+                        {"type": "Polygon", "coordinates": [...]})
 
     Args:
         path: The document path to the geo field (as string or expression).
         kind: The GeoJSON geometry type (e.g., "Polygon", "MultiPolygon").
         geo_object: The GeoJSON geometry defining the boundary.
-        score: Optional expression to adjust the relevance score.
+        score: Optional[SearchScore] expression to adjust the relevance score.
 
     Reference: https://www.mongodb.com/docs/atlas/atlas-search/geoWithin/
     """
@@ -707,8 +726,10 @@ class SearchMoreLikeThis(SearchExpression):
         SearchMoreLikeThis([{"_id": ObjectId("...")}, {"title": "Example"}])
 
     Args:
-        documents: A list of example documents or expressions to find similar documents.
-        score: Optional expression to modify the relevance scoring.
+        documents: A list of example documents or expressions to find similar
+            documents.
+        score: Optional[SearchScore] expression to modify the relevance
+            scoring.
 
     Reference: https://www.mongodb.com/docs/atlas/atlas-search/morelikethis/
     """
@@ -741,11 +762,12 @@ class SearchMoreLikeThis(SearchExpression):
 
 class CompoundExpression(SearchExpression):
     """
-    Compound expression that combines multiple search clauses using boolean logic.
+    Compound expression that combines multiple search clauses using boolean
+    logic.
 
-    This expression corresponds to the `compound` operator in MongoDB Atlas Search,
-    allowing fine-grained control by combining multiple sub-expressions with
-    `must`, `must_not`, `should`, and `filter` clauses.
+    This expression corresponds to the `compound` operator in MongoDB Atlas
+    Search, allowing fine-grained control by combining multiple
+    sub-expressions with `must`, `must_not`, `should`, and `filter` clauses.
 
     Example:
         CompoundExpression(
@@ -758,10 +780,13 @@ class CompoundExpression(SearchExpression):
     Args:
         must: List of expressions that **must** match.
         must_not: List of expressions that **must not** match.
-        should: List of expressions that **should** match (optional relevance boost).
-        filter: List of expressions to filter results without affecting relevance.
-        score: Optional expression to adjust scoring.
-        minimum_should_match: Minimum number of `should` clauses that must match.
+        should: List of expressions that **should** match
+            (optional relevance boost).
+        filter: List of expressions to filter results without affecting
+            relevance.
+        score: Optional[SearchScore] expression to adjust scoring.
+        minimum_should_match: Minimum number of `should` clauses that
+            must match.
 
     Reference: https://www.mongodb.com/docs/atlas/atlas-search/compound/
     """
@@ -884,22 +909,27 @@ class CombinedSearchExpression(SearchExpression):
 
 class SearchVector(SearchExpression):
     """
-    Atlas Search expression that performs vector similarity search using `$vectorSearch`.
+    Atlas Search expression that performs vector similarity search
+    using `$vectorSearch`.
 
-    This expression uses the `$vectorSearch` stage to retrieve documents whose vector
-    embeddings are most similar to a given query vector, according to approximate or
-    exact nearest-neighbor search.
+    This expression uses the `$vectorSearch` stage to retrieve documents
+    whose vector embeddings are most similar to a given query vector,
+    according to approximate or exact nearest-neighbor search.
 
     Example:
-        SearchVector("embedding", [0.1, 0.2, 0.3], limit=10, num_candidates=100)
+        SearchVector("embedding", [0.1, 0.2, 0.3], limit=10,
+                     num_candidates=100)
 
     Args:
         path: The document path to the vector field (as string or expression).
         query_vector: The query vector to compare against.
         limit: Maximum number of matching documents to return.
-        num_candidates: Optional number of candidates to consider during search.
-        exact: Optional flag to enforce exact matching (default is approximate).
-        filter: Optional filter expression to narrow candidate documents.
+        num_candidates: Optional number of candidates to consider
+            during search.
+        exact: Optional flag to enforce exact matching (default is
+            approximate).
+        filter: Optional raw mql filter expression to narrow
+            candidate documents.
 
     Reference: https://www.mongodb.com/docs/atlas/atlas-vector-search/vector-search-stage/
     """
