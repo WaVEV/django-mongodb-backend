@@ -893,14 +893,13 @@ class CombinedSearchExpression(SearchExpression):
             return node.negate() if negated else node
         # Apply De Morgan's Laws.
         operator = node.operator.negate() if negated else node.operator
-        negated = negated != (node.operator == Operator.NOT)
+        if operator == Operator.NOT:
+            return node.resolve(node.lhs, not negated)
         lhs_compound = node.resolve(node.lhs, negated)
         rhs_compound = node.resolve(node.rhs, negated)
-        if operator == Operator.OR:
-            return CompoundExpression(should=[lhs_compound, rhs_compound], minimum_should_match=1)
         if operator == Operator.AND:
             return CompoundExpression(must=[lhs_compound, rhs_compound])
-        return lhs_compound
+        return CompoundExpression(should=[lhs_compound, rhs_compound], minimum_should_match=1)
 
     def as_mql(self, compiler, connection):
         expression = self.resolve(self)
