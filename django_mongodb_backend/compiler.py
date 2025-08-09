@@ -109,6 +109,13 @@ class SQLCompiler(compiler.SQLCompiler):
         return replacements, group
 
     def _prepare_search_expressions_for_pipeline(self, expression, search_idx, replacements):
+        """
+        Collect and prepare unique search expressions for inclusion in an
+        aggregation pipeline.
+        Iterates over all search sub-expressions of the given expression,
+        assigns a unique alias to each, and maps them to their
+        replacement expressions.
+        """
         searches = {}
         for sub_expr in self._get_search_expressions(expression):
             if sub_expr not in replacements:
