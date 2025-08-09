@@ -34,7 +34,7 @@ class SQLCompiler(compiler.SQLCompiler):
         # A list of OrderBy objects for this query.
         self.order_by_objs = None
         self.subqueries = []
-        # Atlas search calls
+        # Atlas search stage.
         self.search_pipeline = []
 
     def _get_group_alias_column(self, expr, annotation_group_idx):
@@ -65,8 +65,8 @@ class SQLCompiler(compiler.SQLCompiler):
         column_target.set_attributes_from_name(alias)
         inner_column = Col(self.collection_name, column_target)
         if getattr(sub_expr, "distinct", False):
-            # If the expression should return distinct values, use
-            # $addToSet to deduplicate.
+            # If the expression should return distinct values, use $addToSet to
+            # deduplicate.
             rhs = sub_expr.as_mql(self, self.connection, resolve_inner_expression=True)
             group[alias] = {"$addToSet": rhs}
             replacing_expr = sub_expr.copy()
@@ -112,9 +112,10 @@ class SQLCompiler(compiler.SQLCompiler):
         """
         Collect and prepare unique search expressions for inclusion in an
         aggregation pipeline.
-        Iterates over all search sub-expressions of the given expression,
-        assigns a unique alias to each, and maps them to their
-        replacement expressions.
+
+        Iterate over all search sub-expressions of the given expression.
+        Assigning a unique alias to each and map them to their replacement
+        expressions.
         """
         searches = {}
         for sub_expr in self._get_search_expressions(expression):
@@ -126,23 +127,21 @@ class SQLCompiler(compiler.SQLCompiler):
         """
         Prepare expressions for the search pipeline.
 
-        Handle the computation of search functions used by various
-        expressions. Separate and create intermediate columns, and replace
-        nodes to simulate a search operation.
+        Handle the computation of search functions used by various expressions.
+        Separate and create intermediate columns, and replace nodes to simulate
+        a search operation.
 
-        MongoDB's $search or $searchVector are stages. To apply operations over them,
-        compute the $search or $vectorSearch first, then apply additional operations in a subsequent
-        stage by replacing the aggregate expressions with new document field prefixed
-        by `__search_expr.search#`.
+        To apply operations over the $search or $searchVector stages, compute
+        the $search or $vectorSearch first, then apply additional operations in
+        a subsequent stage by replacing the aggregate expressions with a new
+        document field prefixed by `__search_expr.search#`.
         """
         replacements = {}
         annotation_group_idx = itertools.count(start=1)
         for expr in self.query.annotation_select.values():
             self._prepare_search_expressions_for_pipeline(expr, annotation_group_idx, replacements)
-
         for expr, _ in order_by:
             self._prepare_search_expressions_for_pipeline(expr, annotation_group_idx, replacements)
-
         self._prepare_search_expressions_for_pipeline(
             self.having, annotation_group_idx, replacements
         )
@@ -257,13 +256,14 @@ class SQLCompiler(compiler.SQLCompiler):
 
     def _compound_searches_queries(self, search_replacements):
         """
-        Builds a query pipeline from a mapping of search expressions to result columns.
+        Build a query pipeline from a mapping of search expressions to result
+        columns.
 
-        Currently, only a single `$search` or `$vectorSearch` expression is supported.
-        Combining multiple search expressions is not yet allowed and will raise a ValueError.
+        Currently only a single $search or $vectorSearch expression is
+        supported. Combining multiple search expressions raises ValueError.
 
-        This method will eventually support hybrid search by allowing the combination of
-        `$search` and `$vectorSearch` operations.
+        This method will eventually support hybrid search by allowing the
+        combination of $search and $vectorSearch operations.
         """
         if not search_replacements:
             return []

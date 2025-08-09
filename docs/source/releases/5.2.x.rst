@@ -16,14 +16,7 @@ New features
 - Added :class:`~.fields.PolymorphicEmbeddedModelField` and
   :class:`~.fields.PolymorphicEmbeddedModelArrayField` for storing a model
   instance or list of model instances that may be of more than one model class.
-- Added support for MongoDB Atlas Search expressions, including
-  :class:`~.expressions.SearchAutocomplete`,
-  :class:`~.expressions.SearchEquals`,
-  :class:`~.expressions.SearchVector`, and others.
-- Added support for the ``search`` lookup on
-  :class:`~django.db.models.TextField` and
-  :class:`~django.db.models.CharField`.
-
+- Added support for :doc:`Atlas Search queries </ref/models/search>`.
 
 Backwards incompatible changes
 ------------------------------

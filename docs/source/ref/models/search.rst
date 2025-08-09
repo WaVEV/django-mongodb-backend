@@ -1,14 +1,16 @@
-============
-Atlas search
-============
+====================
+Atlas search queries
+====================
 
 .. currentmodule:: django_mongodb_backend.expressions
 
 .. versionadded:: 5.2.0b2
 
-The database functions in the ``django_mongodb_backend.expressions``
-module ease the use of MongoDB Atlas search's :doc:`full text and vector
-search engine <atlas:atlas-search>`.
+Atlas Search expressions
+========================
+
+Atlas search expressions ease the use of MongoDB Atlas search's :doc:`full text
+and vector search engine <atlas:atlas-search>`.
 
 For the examples in this document, we'll use the following models::
 
@@ -30,15 +32,14 @@ For the examples in this document, we'll use the following models::
         writer = EmbeddedModelField(Writer, null=True)
 
 ``SearchEquals``
-================
+----------------
 
-.. class:: SearchEquals(path, value, score=None)
+.. class:: SearchEquals(path, value, *, score=None)
 
-Atlas Search expression that matches documents where a field is equal
-to a given value.
+Matches documents where a field is equal to a given value.
 
-This expression uses the :doc:`equals operator <atlas:atlas-search/equals>`
-to perform exact matches on fields indexed in a MongoDB Atlas Search index.
+Uses the :doc:`equals operator <atlas:atlas-search/equals>` to perform exact
+matches on fields indexed in a MongoDB Atlas Search index.
 
 .. code-block:: pycon
 
@@ -47,23 +48,20 @@ to perform exact matches on fields indexed in a MongoDB Atlas Search index.
     <QuerySet [<Article: headline: title>]>
 
 The ``path`` argument can be either the name of a field (as a string), or a
-:class:`~django.db.models.F` instance. The ``value`` argument
-must be a string or a :class:`~django.db.models.Value`.
+:class:`~django.db.models.F` instance.
 
-``SearchEquals`` objects can be reused and combined with other search
-expressions.
-
-See :ref:`search-operations-combinable`.
+The ``value`` argument must be a string or a :class:`~django.db.models.Value`.
 
 ``SearchAutocomplete``
-======================
+----------------------
 
-Atlas Search expression that enables autocomplete behavior on string fields.
+.. class:: SearchAutocomplete(path, query, *, fuzzy=None, token_order=None, score=None)
 
-This expression uses the
-:doc:`autocomplete operator <atlas:atlas-search/autocomplete>` to match the
-input query against a field indexed with ``"type": "autocomplete"`` in a
-MongoDB Atlas Search index.
+Enables autocomplete behavior on string fields.
+
+Uses the :doc:`autocomplete operator <atlas:atlas-search/autocomplete>` to
+match the input query against a field indexed with ``"type": "autocomplete"``
+in a MongoDB Atlas Search index.
 
 .. code-block:: pycon
 
@@ -75,9 +73,10 @@ MongoDB Atlas Search index.
     ]>
 
 The ``path`` argument specifies the field to search and can be a string or a
-:class:`~django.db.models.F`. The ``query`` is the user input
-string to autocomplete and can be passed as a string or a
-:class:`~django.db.models.Value`.
+:class:`~django.db.models.F`.
+
+The ``query`` is the user input string to autocomplete and can be passed as a
+string or a :class:`~django.db.models.Value`.
 
 Optional arguments:
 
@@ -87,13 +86,8 @@ Optional arguments:
   ``"sequential"`` or ``"any"``.
 - ``score``: An optional score expression such as ``{"boost": {"value": 5}}``.
 
-``SearchAutocomplete`` expressions can be reused and composed with other
-search expressions.
-
-See also: :ref:`search-operations-combinable`.
-
 ``SearchExists``
-================
+----------------
 
 Atlas Search expression that matches documents where a field exists.
 
@@ -116,13 +110,8 @@ as a string or a :class:`~django.db.models.F`.
 An optional ``score`` argument can be used to modify the relevance score of
 the result.
 
-``SearchExists`` expressions can be reused and combined with other search
-expressions.
-
-See also: :ref:`search-operations-combinable`.
-
 ``SearchIn``
-============
+------------
 
 Atlas Search expression that matches documents where a field's value is in a
 given list.
@@ -145,13 +134,8 @@ of values or a :class:`~django.db.models.Value`.
 
 An optional ``score`` argument can be used to customize relevance scoring.
 
-``SearchIn`` expressions can be reused and combined with other search
-expressions.
-
-See also: :ref:`search-operations-combinable`.
-
 ``SearchPhrase``
-================
+----------------
 
 Atlas Search expression that matches a phrase in the specified field.
 
@@ -180,13 +164,8 @@ Optional arguments:
 - ``synonyms``: The name of a synonym mapping defined in your Atlas index.
 - ``score``: An optional score expression to adjust relevance.
 
-``SearchPhrase`` expressions can be reused and combined with other search
-expressions.
-
-See also: :ref:`search-operations-combinable`.
-
 ``SearchQueryString``
-=====================
+---------------------
 
 Atlas Search expression that matches using a Lucene-style query string.
 
@@ -212,13 +191,8 @@ The ``query`` argument is a Lucene-style query string.
 
 An optional ``score`` argument may be used to adjust relevance scoring.
 
-``SearchQueryString`` expressions can be reused and combined with other search
-expressions.
-
-See also: :ref:`search-operations-combinable`.
-
 ``SearchRange``
-===============
+---------------
 
 Atlas Search expression that filters documents within a specified range of
 values.
@@ -247,13 +221,8 @@ Optional arguments:
 - ``gte``: Inclusive lower bound (``>=``)
 - ``score``: An optional score expression to influence relevance
 
-``SearchRange`` expressions can be reused and combined with other search
-expressions.
-
-See also: :ref:`search-operations-combinable`.
-
 ``SearchRegex``
-===============
+---------------
 
 Atlas Search expression that matches string fields using a regular expression.
 
@@ -279,13 +248,8 @@ Optional arguments:
   against analyzed fields (defaults to ``False``).
 - ``score``: An optional score expression to adjust relevance.
 
-``SearchRegex`` expressions can be reused and combined with other search
-expressions.
-
-See also: :ref:`search-operations-combinable`.
-
 ``SearchText``
-==============
+--------------
 
 Atlas Search expression that performs full-text search using the :doc:`text
 operator <atlas:atlas-search/text>`.
@@ -319,13 +283,8 @@ Optional arguments:
 - ``synonyms``: The name of a synonym mapping defined in your Atlas index.
 - ``score``: An optional expression to influence relevance scoring.
 
-``SearchText`` expressions can be reused and combined with other search
-    expressions.
-
-See also: :ref:`search-operations-combinable`
-
 ``SearchWildcard``
-==================
+------------------
 
 Atlas Search expression that matches strings using wildcard patterns.
 
@@ -355,13 +314,8 @@ Optional arguments:
   fields (defaults to ``False``).
 - ``score``: An optional expression to adjust relevance.
 
-``SearchWildcard`` expressions can be reused and combined with other search
-expressions.
-
-See also: :ref:`search-operations-combinable`.
-
 ``SearchGeoShape``
-==================
+------------------
 
 Atlas Search expression that filters documents based on spatial relationships
 with a geometry.
@@ -396,13 +350,8 @@ Optional:
 
 - ``score``: An optional expression to modify the relevance score.
 
-``SearchGeoShape`` expressions can be reused and combined with other search
-expressions.
-
-See also: :ref:`search-operations-combinable`.
-
 ``SearchGeoWithin``
-===================
+-------------------
 
 Atlas Search expression that filters documents with geo fields contained
 within a specified shape.
@@ -435,13 +384,8 @@ Optional:
 
 - ``score``: An optional expression to adjust the relevance score.
 
-``SearchGeoWithin`` expressions can be reused and combined with other search
-expressions.
-
-See also: :ref:`search-operations-combinable`.
-
 ``SearchMoreLikeThis``
-======================
+----------------------
 
 Atlas Search expression that finds documents similar to the provided examples.
 
@@ -471,18 +415,12 @@ Optional:
 - ``score``: An optional expression to adjust the relevance score of the
   results.
 
-``SearchMoreLikeThis`` expressions can be reused and combined with other
-search expressions.
-
-See also: :ref:`search-operations-combinable`.
-
 ``CompoundExpression``
 ======================
 
 Compound expression that combines multiple search clauses using boolean logic.
 
-This expression uses the
-:doc:`compound operator <atlas:atlas-search/compound>` in MongoDB Atlas Search
+This expression uses the :doc:`compound operator <atlas:atlas-search/compound>`
 to combine sub-expressions with ``must``, ``must_not``, ``should``, and
 ``filter`` clauses. It enables fine-grained control over how multiple
 conditions contribute to document matching and scoring.
@@ -516,8 +454,6 @@ Arguments:
 ``CompoundExpression`` is useful for building advanced and flexible query
 logic in Atlas Search.
 
-See also: :ref:`search-operations-combinable`.
-
 ``CombinedSearchExpression``
 ============================
 
@@ -525,10 +461,11 @@ Expression that combines two Atlas Search expressions using a boolean
 operator.
 
 This expression is used internally when combining search expressions with
-Python’s bitwise operators (``&``, ``|``, ``~``), and corresponds to
-logical operators such as ``and``, ``or``, and ``not``.
+Python's bitwise operators (``&``, ``|``, ``~``), corresponding to the logical
+operators such as ``and``, ``or``, and ``not``.
 
-.. note::
+.. admonition:: Typical usage
+
    This expression is typically created when using the combinable interface
    (e.g., ``expr1 & expr2``). It can also be constructed manually.
 
@@ -592,11 +529,8 @@ This allows for more expressive and readable search logic:
     ]>
 
 Under the hood, these expressions are translated into
-``CombinedSearchExpression`` instances.
-
-``CombinedSearchExpression`` can also be reused and nested with other compound
-expressions.
-
+:class:`CombinedSearchExpression` instances, which can be reused and nested
+with other compound expressions.
 
 ``SearchVector``
 ================
@@ -703,6 +637,3 @@ Under the hood:
 - The left-hand side of the lookup is wrapped into a ``SearchText`` expression.
 - The lookup compiles to a MongoDB query that filters documents with a score
   greater or equal to zero.
-
-This allows for concise and idiomatic integration of Atlas Search within
-Django filters.
