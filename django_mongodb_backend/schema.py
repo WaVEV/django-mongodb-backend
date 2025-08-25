@@ -361,7 +361,7 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             expressions=constraint.expressions,
             nulls_distinct=constraint.nulls_distinct,
         ):
-            idx = Index(
+            idx = constraint._get_index_for_add_constraint(
                 fields=constraint.fields,
                 name=constraint.name,
                 condition=constraint.condition,

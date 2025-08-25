@@ -64,6 +64,71 @@ address with the city "New York"::
 
     >>> Customer.objects.filter(address__city="New York")
 
+Indexing ``EmbeddedModelField``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 6.0.2
+
+You can create indexes on fields inside an embedded model by referencing them
+with dotted paths.
+
+For example::
+
+    from django.db import models
+
+    from django_mongodb_backend.fields import EmbeddedModelField
+
+    from django_mongodb_backend.constraints import EmbeddedModelUniqueConstraint
+    from django_mongodb_backend.indexes import EmbeddedModelIndex
+
+
+    class Customer(models.Model):
+        name = models.CharField(max_length=255)
+        address = EmbeddedModelField("Address")
+
+        def __str__(self):
+            return self.name
+
+        class Meta:
+            indexes = [
+                EmbeddedModelIndex(fields=["address.zip_code"])
+            ]
+
+
+Unique constraints on ``EmbeddedModelField``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 6.0.2
+
+You can enforce uniqueness for fields inside an embedded model by referencing
+them with dotted paths.
+
+For example::
+
+    from django.db import models
+
+    from django_mongodb_backend.fields import EmbeddedModelField
+
+    from django_mongodb_backend.constraints import EmbeddedModelUniqueConstraint
+    from django_mongodb_backend.indexes import EmbeddedModelIndex
+
+
+    class Product(models.Model):
+        name = models.CharField(max_length=255)
+        product_info = EmbeddedModelField("ProductInfo")
+
+        def __str__(self):
+            return self.name
+
+        class Meta:
+            constraints = [
+                EmbeddedModelUniqueConstraint(
+                    fields=["product_info.sku"],
+                    name="unique_product_sku",
+                )
+            ]
+
+
 .. _embedded-model-array-field-example:
 
 ``EmbeddedModelArrayField``
@@ -183,6 +248,73 @@ For example, if the ``Tag`` model had an ``EmbeddedModelArrayField`` called
     >>> Post.objects.filter(tags__colors__name="blue")
     ...
     ValueError: Cannot perform multiple levels of array traversal in a query.
+
+
+Indexing ``EmbeddedModelArrayField``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 6.0.2
+
+You can create indexes on fields inside an embedded model array by referencing
+them with dotted paths.
+
+For example::
+
+    from django.db import models
+
+    from django_mongodb_backend.fields import EmbeddedModelArrayField
+
+    from django_mongodb_backend.constraints import EmbeddedModelUniqueConstraint
+    from django_mongodb_backend.indexes import EmbeddedModelIndex
+
+
+    class Customer(models.Model):
+        name = models.CharField(max_length=255)
+        addresses = EmbeddedModelArrayField("Address")
+
+        def __str__(self):
+            return self.name
+
+        class Meta:
+            constraints = [
+                EmbeddedModelUniqueConstraint(
+                    fields=["addresses.zip_code"],
+                    name="unique_address_zip_code",
+                )
+            ]
+
+
+Unique constraints on ``EmbeddedModelArrayField``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 6.0.2
+
+You can enforce uniqueness for fields inside an embedded model array by
+referencing them with dotted paths. This allows validating that no two embedded
+documents within the array share the same value for a given field.
+
+
+For example::
+
+    from django.db import models
+
+    from django_mongodb_backend.fields import EmbeddedModelArrayField
+
+    from django_mongodb_backend.constraints import EmbeddedModelUniqueConstraint
+    from django_mongodb_backend.indexes import EmbeddedModelIndex
+
+
+    class Customer(models.Model):
+        name = models.CharField(max_length=255)
+        addresses = EmbeddedModelArrayField("Address")
+
+        def __str__(self):
+            return self.name
+
+        class Meta:
+            indexes = [
+                EmbeddedModelIndex(fields=["addresses.zip_code"])
+            ]
 
 .. _polymorphic-embedded-model-field-example:
 
