@@ -188,15 +188,11 @@ class BaseSchemaEditor(BaseDatabaseSchemaEditor):
             # Remove the top level indexes.
             # TODO: Find a workaround
             for index in model._meta.indexes:
-                if any(
-                    field_name.startswith(f"{field.column}{LOOKUP_SEP}")
-                    for field_name in index.fields
-                ):
+                if any(f"{field.column}{LOOKUP_SEP}" in field_name for field_name in index.fields):
                     self.remove_index(model, index)
             for constraint in model._meta.constraints:
                 if any(
-                    field_name.startswith(f"{field.column}{LOOKUP_SEP}")
-                    for field_name in constraint.fields
+                    f"{field.column}{LOOKUP_SEP}" in field_name for field_name in constraint.fields
                 ):
                     self.get_collection(model._meta.db_table).drop_index(constraint.name)
 

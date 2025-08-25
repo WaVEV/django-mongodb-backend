@@ -730,6 +730,136 @@ class EmbeddedModelsTopLevelIndexTest(TestMixin, TransactionTestCase):
             editor.delete_model(Book)
         self.assertTableNotExists(Book)
 
+    @isolate_apps("schema_")
+    def test_add_remove_inner_field_indexes(self):
+        """AddField/RemoveField + EmbeddedModelField + Meta.indexes at inner level."""
+
+        class Address(EmbeddedModel):
+            indexed_one = models.CharField(max_length=10)
+
+            class Meta:
+                app_label = "schema_"
+
+        class Author(EmbeddedModel):
+            address = EmbeddedModelField(Address)
+            indexed_two = models.CharField(max_length=10)
+
+            class Meta:
+                app_label = "schema_"
+
+        class Book(models.Model):
+            author = EmbeddedModelField(Author)
+
+            class Meta:
+                app_label = "schema_"
+                indexes = [
+                    models.Index(fields=["author__indexed_two"]),
+                    models.Index(fields=["author__address__indexed_one"]),
+                ]
+
+        new_field = EmbeddedModelField(Address)
+        new_field.set_attributes_from_name("address")
+
+        with connection.schema_editor() as editor:
+            # Create the table and add the field.
+            editor.create_model(Book)
+            editor.add_field(Author, new_field)
+            # Embedded indexes are created.
+            self.assertEqual(
+                self.get_constraints_for_columns(Book, ["author.indexed_two"]),
+                ["schema__boo_author._333c90_idx"],
+            )
+            self.assertEqual(
+                self.get_constraints_for_columns(
+                    Book,
+                    ["author.address.indexed_one"],
+                ),
+                ["schema__boo_author._f54386_idx"],
+            )
+            editor.remove_field(Book, new_field)
+            # Embedded indexes are removed.
+            self.assertEqual(
+                self.get_constraints_for_columns(Book, ["author.indexed_two"]),
+                ["schema__boo_author._333c90_idx"],
+            )
+            self.assertEqual(
+                self.get_constraints_for_columns(
+                    Book,
+                    ["author.address.indexed_one"],
+                ),
+                [],
+            )
+            editor.delete_model(Book)
+        self.assertTableNotExists(Book)
+
+    @isolate_apps("schema_")
+    def test_add_remove_inner_field_constraints(self):
+        """AddField/RemoveField + EmbeddedModelField + Meta.constraints at top-level."""
+
+        class Address(EmbeddedModel):
+            unique_constraint_one = models.CharField(max_length=10)
+
+            class Meta:
+                app_label = "schema_"
+
+        class Author(EmbeddedModel):
+            address = EmbeddedModelField(Address)
+            unique_constraint_two = models.CharField(max_length=10)
+
+            class Meta:
+                app_label = "schema_"
+
+        class Book(models.Model):
+            author = EmbeddedModelField(Author)
+
+            class Meta:
+                app_label = "schema_"
+                constraints = [
+                    models.UniqueConstraint(
+                        fields=["author__unique_constraint_two"],
+                        name="unique_two",
+                    ),
+                    models.UniqueConstraint(
+                        fields=["author__address__unique_constraint_one"],
+                        name="unique_one",
+                    ),
+                ]
+
+        new_field = EmbeddedModelField(Address)
+        new_field.set_attributes_from_name("address")
+
+        with connection.schema_editor() as editor:
+            # Create the table and add the field.
+            editor.create_model(Book)
+            editor.add_field(Author, new_field)
+            # Embedded constraints are created.
+            self.assertEqual(
+                self.get_constraints_for_columns(Book, ["author.unique_constraint_two"]),
+                ["unique_two"],
+            )
+            self.assertEqual(
+                self.get_constraints_for_columns(
+                    Book,
+                    ["author.address.unique_constraint_one"],
+                ),
+                ["unique_one"],
+            )
+            editor.remove_field(Book, new_field)
+            # Embedded constraints are removed.
+            self.assertEqual(
+                self.get_constraints_for_columns(Book, ["author.unique_constraint_two"]),
+                ["unique_two"],
+            )
+            self.assertEqual(
+                self.get_constraints_for_columns(
+                    Book,
+                    ["author.address.unique_constraint_one"],
+                ),
+                [],
+            )
+            editor.delete_model(Book)
+        self.assertTableNotExists(Book)
+
 
 class EmbeddedModelsIgnoredTests(TestMixin, TransactionTestCase):
     def test_embedded_not_created(self):
