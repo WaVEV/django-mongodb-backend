@@ -277,6 +277,8 @@ criteria, and synonym mappings.
 - ``query``: The argument is the search term or phrase.
 - ``fuzzy``: A dictionary of fuzzy matching options, such as
   ``{"maxEdits": 1}``.
+- ``match_criteria``: Whether to match ``"all"`` or ``"any"`` terms (defaults
+  to Atlas Search behavior).
 - ``synonyms``: The name of a synonym mapping defined in your Atlas index.
 - ``score``: A :class:`SearchScoreOption` to tune the relevance score.
 
@@ -288,8 +290,8 @@ criteria, and synonym mappings.
 Matches strings using wildcard patterns.
 
 Uses the :doc:`wildcard operator <atlas:atlas-search/wildcard>` to search for
-terms matching a pattern with ``*`` (any sequence of characters) and ``?``
-(any single character) wildcards.
+terms matching a pattern with ``*`` (any sequence of characters) and ``?`` (any
+single character) wildcards.
 
 .. code-block:: pycon
 
