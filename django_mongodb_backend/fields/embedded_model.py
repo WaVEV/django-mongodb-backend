@@ -5,8 +5,10 @@ from django.core.exceptions import FieldDoesNotExist, ValidationError
 from django.db import models
 from django.db.models.fields.related import lazy_related_operation
 from django.db.models.lookups import Transform
+from django.utils.functional import cached_property
 
 from django_mongodb_backend import forms
+from django_mongodb_backend.query_utils import valid_path_key_name
 
 
 class EmbeddedModelField(models.Field):
@@ -166,6 +168,19 @@ class EmbeddedModelTransform(Transform):
     def get_lookup(self, name):
         return self.field.get_lookup(name)
 
+    @property
+    def can_use_path(self):
+        return self.is_simple_column
+
+    @cached_property
+    def is_simple_column(self):
+        previous = self
+        while isinstance(previous, EmbeddedModelTransform):
+            if not valid_path_key_name(previous._field.column):
+                return False
+            previous = previous.lhs
+        return previous.is_simple_column
+
     def get_transform(self, name):
         """
         Validate that `name` is either a field of an embedded model or a
@@ -185,20 +200,26 @@ class EmbeddedModelTransform(Transform):
             f"{suggestion}"
         )
 
-    def as_mql(self, compiler, connection, as_path=False):
+    def _get_target_path(self):
         previous = self
         columns = []
         while isinstance(previous, EmbeddedModelTransform):
             columns.insert(0, previous.field.column)
             previous = previous.lhs
-        if as_path:
-            mql = previous.as_mql(compiler, connection, as_path=True)
-            mql_path = ".".join(columns)
-            return f"{mql}.{mql_path}"
-        mql = previous.as_mql(compiler, connection)
+        return columns, previous
+
+    def as_mql_expr(self, compiler, connection):
+        columns, parent_field = self._get_target_path()
+        mql = parent_field.as_mql(compiler, connection, as_expr=True)
         for column in columns:
             mql = {"$getField": {"input": mql, "field": column}}
         return mql
+
+    def as_mql_path(self, compiler, connection):
+        columns, parent_field = self._get_target_path()
+        mql = parent_field.as_mql(compiler, connection)
+        mql_path = ".".join(columns)
+        return f"{mql}.{mql_path}"
 
     @property
     def output_field(self):
