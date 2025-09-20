@@ -66,7 +66,7 @@ def stddev_variance(self, compiler, connection):
 
 
 def register_aggregates():
-    Aggregate.as_mql = aggregate
-    Count.as_mql = count
-    StdDev.as_mql = stddev_variance
-    Variance.as_mql = stddev_variance
+    Aggregate.as_mql_expr = aggregate
+    Count.as_mql_expr = count
+    StdDev.as_mql_expr = stddev_variance
+    Variance.as_mql_expr = stddev_variance
