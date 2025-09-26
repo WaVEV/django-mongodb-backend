@@ -8,10 +8,11 @@ from django.db.models.lookups import Lookup, Transform
 from django.utils.functional import cached_property
 
 from django_mongodb_backend import forms
-from django_mongodb_backend.query_utils import process_lhs, process_rhs
+from django_mongodb_backend.lookups import builtin_lookup_path
+from django_mongodb_backend.query_utils import process_lhs, process_rhs, valid_path_key_name
 
-from . import EmbeddedModelField
-from .array import ArrayField, ArrayLenTransform
+from django_mongodb_backend.fields import EmbeddedModelField
+from django_mongodb_backend.fields.array import ArrayField, ArrayLenTransform
 
 
 class EmbeddedModelArrayField(ArrayField):
@@ -138,10 +139,13 @@ class EmbeddedModelArrayFieldBuiltinLookup(Lookup):
         lhs_mql = process_lhs(self, compiler, connection)
         inner_lhs_mql = lhs_mql["$ifNull"][0]["$map"]["in"]
         values = process_rhs(self, compiler, connection)
-        lhs_mql["$ifNull"][0]["$map"]["in"] = connection.mongo_operators_expr[self.lookup_name](
+        lhs_mql["$ifNull"][0]["$map"]["in"] = connection.mongo_expr_operators[self.lookup_name](
             inner_lhs_mql, values
         )
         return {"$anyElementTrue": lhs_mql}
+
+    def as_mql_path(self, compiler, connection):
+        return builtin_lookup_path(self, compiler, connection)
 
 
 @_EmbeddedModelArrayOutputField.register_lookup
@@ -238,6 +242,7 @@ class EmbeddedModelArrayFieldTransform(Transform):
         column_name = f"${self.VIRTUAL_COLUMN_ITERABLE}.{field.column}"
         column_target.db_column = column_name
         column_target.set_attributes_from_name(column_name)
+        self._field = field
         self._lhs = Col(None, column_target)
         self._sub_transform = None
 
@@ -245,14 +250,15 @@ class EmbeddedModelArrayFieldTransform(Transform):
         self._lhs = self._sub_transform(self._lhs, *args, **kwargs)
         return self
 
-    def is_simple_expression(self):
+    @property
+    def can_use_path(self):
         return self.is_simple_column
 
     @cached_property
     def is_simple_column(self):
         previous = self
         while isinstance(previous, EmbeddedModelArrayFieldTransform):
-            if not previous.key_name.isalnum():
+            if not valid_path_key_name(previous._field.column):
                 return False
             previous = previous.lhs
         return previous.is_simple_column and self._lhs.is_simple_column
@@ -289,13 +295,6 @@ class EmbeddedModelArrayFieldTransform(Transform):
             f"{suggestion}"
         )
 
-    def as_mql_path(self, compiler, connection):
-        inner_lhs_mql = self._lhs.as_mql(compiler, connection, as_path=True).removeprefix(
-            f"${self.VIRTUAL_COLUMN_ITERABLE}."
-        )
-        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
-        return f"{lhs_mql}.{inner_lhs_mql}"
-
     def as_mql_expr(self, compiler, connection):
         inner_lhs_mql = self._lhs.as_mql(compiler, connection)
         lhs_mql = process_lhs(self, compiler, connection)
@@ -311,6 +310,13 @@ class EmbeddedModelArrayFieldTransform(Transform):
                 [],
             ]
         }
+
+    def as_mql_path(self, compiler, connection):
+        inner_lhs_mql = self._lhs.as_mql(compiler, connection, as_path=True).removeprefix(
+            f"${self.VIRTUAL_COLUMN_ITERABLE}."
+        )
+        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
+        return f"{lhs_mql}.{inner_lhs_mql}"
 
     @property
     def output_field(self):

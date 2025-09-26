@@ -11,6 +11,7 @@ from django.db.models import (
     OuterRef,
     Sum,
 )
+from django.db.models.expressions import Value
 from django.test import SimpleTestCase, TestCase
 from django.test.utils import isolate_apps
 
@@ -144,23 +145,360 @@ class QueryingTests(TestCase):
             for x in range(6)
         ]
 
-    def test_exact(self):
-        self.assertCountEqual(Holder.objects.filter(data__integer=3), [self.objs[3]])
+    def test_exact_expr(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(Holder.objects.filter(data__integer=Value(4) - 1), [self.objs[3]])
+        query = ctx.captured_queries[0]["sql"]
+        self.assertAggregateQuery(
+            query,
+            "model_fields__holder",
+            [
+                {
+                    "$match": {
+                        "$expr": {
+                            "$eq": [
+                                {"$getField": {"input": "$data", "field": "integer_"}},
+                                {"$subtract": [{"$literal": 4}, {"$literal": 1}]},
+                            ]
+                        }
+                    }
+                }
+            ],
+        )
 
-    def test_lt(self):
-        self.assertCountEqual(Holder.objects.filter(data__integer__lt=3), self.objs[:3])
+    def test_exact_path(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(Holder.objects.filter(data__integer=3), [self.objs[3]])
+        query = ctx.captured_queries[0]["sql"]
+        self.assertAggregateQuery(query, "model_fields__holder", [{"$match": {"data.integer_": 3}}])
 
-    def test_lte(self):
-        self.assertCountEqual(Holder.objects.filter(data__integer__lte=3), self.objs[:4])
+    def test_lt_expr(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(
+                Holder.objects.filter(data__integer__lt=Value(4) - 1), self.objs[:3]
+            )
+        query = ctx.captured_queries[0]["sql"]
+        self.assertAggregateQuery(
+            query,
+            "model_fields__holder",
+            [
+                {
+                    "$match": {
+                        "$expr": {
+                            "$and": [
+                                {
+                                    "$lt": [
+                                        {"$getField": {"input": "$data", "field": "integer_"}},
+                                        {"$subtract": [{"$literal": 4}, {"$literal": 1}]},
+                                    ]
+                                },
+                                {
+                                    "$not": {
+                                        "$or": [
+                                            {
+                                                "$eq": [
+                                                    {
+                                                        "$type": {
+                                                            "$getField": {
+                                                                "input": "$data",
+                                                                "field": "integer_",
+                                                            }
+                                                        }
+                                                    },
+                                                    "missing",
+                                                ]
+                                            },
+                                            {
+                                                "$eq": [
+                                                    {
+                                                        "$getField": {
+                                                            "input": "$data",
+                                                            "field": "integer_",
+                                                        }
+                                                    },
+                                                    None,
+                                                ]
+                                            },
+                                        ]
+                                    }
+                                },
+                            ]
+                        }
+                    }
+                }
+            ],
+        )
 
-    def test_gt(self):
-        self.assertCountEqual(Holder.objects.filter(data__integer__gt=3), self.objs[4:])
+    def test_lt_path(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(Holder.objects.filter(data__integer__lt=3), self.objs[:3])
+        query = ctx.captured_queries[0]["sql"]
+        self.assertAggregateQuery(
+            query,
+            "model_fields__holder",
+            [
+                {
+                    "$match": {
+                        "$and": [
+                            {"data.integer_": {"$lt": 3}},
+                            {
+                                "$and": [
+                                    {"data.integer_": {"$exists": True}},
+                                    {"data.integer_": {"$ne": None}},
+                                ]
+                            },
+                        ]
+                    }
+                }
+            ],
+        )
 
-    def test_gte(self):
-        self.assertCountEqual(Holder.objects.filter(data__integer__gte=3), self.objs[3:])
+    def test_lte_expr(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(
+                Holder.objects.filter(data__integer__lte=Value(4) - 1), self.objs[:4]
+            )
+        query = ctx.captured_queries[0]["sql"]
+        self.assertAggregateQuery(
+            query,
+            "model_fields__holder",
+            [
+                {
+                    "$match": {
+                        "$expr": {
+                            "$and": [
+                                {
+                                    "$lte": [
+                                        {"$getField": {"input": "$data", "field": "integer_"}},
+                                        {"$subtract": [{"$literal": 4}, {"$literal": 1}]},
+                                    ]
+                                },
+                                {
+                                    "$not": {
+                                        "$or": [
+                                            {
+                                                "$eq": [
+                                                    {
+                                                        "$type": {
+                                                            "$getField": {
+                                                                "input": "$data",
+                                                                "field": "integer_",
+                                                            }
+                                                        }
+                                                    },
+                                                    "missing",
+                                                ]
+                                            },
+                                            {
+                                                "$eq": [
+                                                    {
+                                                        "$getField": {
+                                                            "input": "$data",
+                                                            "field": "integer_",
+                                                        }
+                                                    },
+                                                    None,
+                                                ]
+                                            },
+                                        ]
+                                    }
+                                },
+                            ]
+                        }
+                    }
+                }
+            ],
+        )
 
-    def test_range(self):
-        self.assertCountEqual(Holder.objects.filter(data__integer__range=(2, 4)), self.objs[2:5])
+    def test_lte_path(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(Holder.objects.filter(data__integer__lte=3), self.objs[:4])
+        query = ctx.captured_queries[0]["sql"]
+
+        self.assertAggregateQuery(
+            query,
+            "model_fields__holder",
+            [
+                {
+                    "$match": {
+                        "$and": [
+                            {"data.integer_": {"$lte": 3}},
+                            {
+                                "$and": [
+                                    {"data.integer_": {"$exists": True}},
+                                    {"data.integer_": {"$ne": None}},
+                                ]
+                            },
+                        ]
+                    }
+                }
+            ],
+        )
+
+    def test_gt_expr(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(
+                Holder.objects.filter(data__integer__gt=Value(4) - 1), self.objs[4:]
+            )
+        query = ctx.captured_queries[0]["sql"]
+        self.assertAggregateQuery(
+            query,
+            "model_fields__holder",
+            [
+                {
+                    "$match": {
+                        "$expr": {
+                            "$gt": [
+                                {"$getField": {"input": "$data", "field": "integer_"}},
+                                {"$subtract": [{"$literal": 4}, {"$literal": 1}]},
+                            ]
+                        }
+                    }
+                }
+            ],
+        )
+
+    def test_gt_path(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(Holder.objects.filter(data__integer__gt=3), self.objs[4:])
+        query = ctx.captured_queries[0]["sql"]
+        self.assertAggregateQuery(
+            query, "model_fields__holder", [{"$match": {"data.integer_": {"$gt": 3}}}]
+        )
+
+    def test_gte_expr(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(
+                Holder.objects.filter(data__integer__gte=Value(4) - 1), self.objs[3:]
+            )
+        query = ctx.captured_queries[0]["sql"]
+        self.assertAggregateQuery(
+            query,
+            "model_fields__holder",
+            [
+                {
+                    "$match": {
+                        "$expr": {
+                            "$gte": [
+                                {"$getField": {"input": "$data", "field": "integer_"}},
+                                {"$subtract": [{"$literal": 4}, {"$literal": 1}]},
+                            ]
+                        }
+                    }
+                }
+            ],
+        )
+
+    def test_gte_path(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(Holder.objects.filter(data__integer__gte=3), self.objs[3:])
+        query = ctx.captured_queries[0]["sql"]
+        self.assertAggregateQuery(
+            query, "model_fields__holder", [{"$match": {"data.integer_": {"$gte": 3}}}]
+        )
+
+    def test_range_expr(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(
+                Holder.objects.filter(data__integer__range=(2, Value(5) - 1)), self.objs[2:5]
+            )
+        query = ctx.captured_queries[0]["sql"]
+        self.assertAggregateQuery(
+            query,
+            "model_fields__holder",
+            [
+                {
+                    "$match": {
+                        "$expr": {
+                            "$and": [
+                                {
+                                    "$or": [
+                                        {
+                                            "$or": [
+                                                {"$eq": [{"$type": {"$literal": 2}}, "missing"]},
+                                                {"$eq": [{"$literal": 2}, None]},
+                                            ]
+                                        },
+                                        {
+                                            "$gte": [
+                                                {
+                                                    "$getField": {
+                                                        "input": "$data",
+                                                        "field": "integer_",
+                                                    }
+                                                },
+                                                {"$literal": 2},
+                                            ]
+                                        },
+                                    ]
+                                },
+                                {
+                                    "$or": [
+                                        {
+                                            "$or": [
+                                                {
+                                                    "$eq": [
+                                                        {
+                                                            "$type": {
+                                                                "$subtract": [
+                                                                    {"$literal": 5},
+                                                                    {"$literal": 1},
+                                                                ]
+                                                            }
+                                                        },
+                                                        "missing",
+                                                    ]
+                                                },
+                                                {
+                                                    "$eq": [
+                                                        {
+                                                            "$subtract": [
+                                                                {"$literal": 5},
+                                                                {"$literal": 1},
+                                                            ]
+                                                        },
+                                                        None,
+                                                    ]
+                                                },
+                                            ]
+                                        },
+                                        {
+                                            "$lte": [
+                                                {
+                                                    "$getField": {
+                                                        "input": "$data",
+                                                        "field": "integer_",
+                                                    }
+                                                },
+                                                {"$subtract": [{"$literal": 5}, {"$literal": 1}]},
+                                            ]
+                                        },
+                                    ]
+                                },
+                            ]
+                        }
+                    }
+                }
+            ],
+        )
+
+    def test_range_path(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(
+                Holder.objects.filter(data__integer__range=(2, 4)), self.objs[2:5]
+            )
+        query = ctx.captured_queries[0]["sql"]
+        self.assertAggregateQuery(
+            query,
+            "model_fields__holder",
+            [
+                {
+                    "$match": {
+                        "$and": [{"data.integer_": {"$gte": 2}}, {"data.integer_": {"$lte": 4}}]
+                    }
+                }
+            ],
+        )
 
     def test_exact_decimal(self):
         # EmbeddedModelField lookups call
@@ -246,6 +584,15 @@ class QueryingTests(TestCase):
             author=Author(name="Shakespeare", age=55, address=Address(city="NYC", state="NY"))
         )
         self.assertCountEqual(Book.objects.filter(author__address__city="NYC"), [obj])
+
+    def test_annotate(self):
+        obj = Book.objects.create(
+            author=Author(name="Shakespeare", age=55, address=Address(city="NYC", state="NY"))
+        )
+        book_from_ny = (
+            Book.objects.annotate(city=F("author__address__city")).filter(city="NYC").first()
+        )
+        self.assertCountEqual(book_from_ny.city, obj.author.address.city)
 
 
 class ArrayFieldTests(TestCase):

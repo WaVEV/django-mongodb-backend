@@ -481,11 +481,11 @@ class SQLCompiler(compiler.SQLCompiler):
             query.lookup_pipeline = self.get_lookup_pipeline()
             where = self.get_where()
             try:
-                expr = where.as_mql(self, self.connection, as_path=True) if where else {}
+                match = where.as_mql(self, self.connection, as_path=True) if where else {}
             except FullResultSet:
                 query.match_mql = {}
             else:
-                query.match_mql = expr
+                query.match_mql = match
         if extra_fields:
             query.extra_fields = self.get_project_fields(extra_fields, force_expression=True)
         query.subqueries = self.subqueries
@@ -643,9 +643,7 @@ class SQLCompiler(compiler.SQLCompiler):
             for alias, expr in self.columns:
                 # Unfold foreign fields.
                 if isinstance(expr, Col) and expr.alias != self.collection_name:
-                    ids[expr.alias][expr.target.column] = expr.as_mql(
-                        self, self.connection, as_path=False
-                    )
+                    ids[expr.alias][expr.target.column] = expr.as_mql(self, self.connection)
                 else:
                     ids[alias] = f"${alias}"
             # Convert defaultdict to dict so it doesn't appear as
@@ -716,9 +714,9 @@ class SQLCompiler(compiler.SQLCompiler):
                 value = (
                     False if empty_result_set_value is NotImplemented else empty_result_set_value
                 )
-                fields[collection][name] = Value(value).as_mql(self, self.connection, as_path=False)
+                fields[collection][name] = Value(value).as_mql(self, self.connection)
             except FullResultSet:
-                fields[collection][name] = Value(True).as_mql(self, self.connection, as_path=False)
+                fields[collection][name] = Value(True).as_mql(self, self.connection)
         # Annotations (stored in None) and the main collection's fields
         # should appear in the top-level of the fields dict.
         fields.update(fields.pop(None, {}))

@@ -4,10 +4,11 @@ from django.core import checks, exceptions
 from django.db.models import Field, Func, IntegerField, Transform, Value
 from django.db.models.fields.mixins import CheckFieldDefaultMixin
 from django.db.models.lookups import Exact, FieldGetDbPrepValueMixin, In, Lookup
+from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 from django_mongodb_backend.forms import SimpleArrayField
-from django_mongodb_backend.query_utils import process_lhs, process_rhs
+from django_mongodb_backend.query_utils import is_constant_value, process_lhs, process_rhs
 from django_mongodb_backend.utils import prefix_validation_error
 from django_mongodb_backend.validators import ArrayMaxLengthValidator, LengthValidator
 
@@ -236,6 +237,20 @@ class Array(Func):
             for expr in self.get_source_expressions()
         ]
 
+    def as_mql_path(self, compiler, connection):
+        return [
+            expr.as_mql(compiler, connection, as_path=True)
+            for expr in self.get_source_expressions()
+        ]
+
+    @cached_property
+    def can_use_path(self):
+        return all(is_constant_value(expr) for expr in self.get_source_expressions())
+
+    @property
+    def is_simple_column(self):
+        return False
+
 
 class ArrayRHSMixin:
     def __init__(self, lhs, rhs):
@@ -254,13 +269,6 @@ class ArrayRHSMixin:
 class ArrayContains(ArrayRHSMixin, FieldGetDbPrepValueMixin, Lookup):
     lookup_name = "contains"
 
-    def as_mql_path(self, compiler, connection):
-        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
-        value = process_rhs(self, compiler, connection, as_path=True)
-        if value is None:
-            return False
-        return {lhs_mql: {"$all": value}}
-
     def as_mql_expr(self, compiler, connection):
         lhs_mql = process_lhs(self, compiler, connection, as_path=False)
         value = process_rhs(self, compiler, connection, as_path=False)
@@ -271,6 +279,11 @@ class ArrayContains(ArrayRHSMixin, FieldGetDbPrepValueMixin, Lookup):
                 {"$setIsSubset": [value, lhs_mql]},
             ]
         }
+
+    def as_mql_path(self, compiler, connection):
+        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
+        value = process_rhs(self, compiler, connection, as_path=True)
+        return {lhs_mql: {"$all": value}}
 
 
 @ArrayField.register_lookup
@@ -333,11 +346,6 @@ class ArrayOverlap(ArrayRHSMixin, FieldGetDbPrepValueMixin, Lookup):
             },
         ]
 
-    def as_mql_path(self, compiler, connection):
-        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
-        value = process_rhs(self, compiler, connection, as_path=True)
-        return {lhs_mql: {"$in": value}}
-
     def as_mql_expr(self, compiler, connection):
         lhs_mql = process_lhs(self, compiler, connection, as_path=False)
         value = process_rhs(self, compiler, connection, as_path=False)
@@ -347,6 +355,11 @@ class ArrayOverlap(ArrayRHSMixin, FieldGetDbPrepValueMixin, Lookup):
                 {"$size": {"$setIntersection": [value, lhs_mql]}},
             ]
         }
+
+    def as_mql_path(self, compiler, connection):
+        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
+        value = process_rhs(self, compiler, connection, as_path=True)
+        return {lhs_mql: {"$in": value}}
 
 
 @ArrayField.register_lookup
@@ -381,20 +394,21 @@ class IndexTransform(Transform):
         self.index = index
         self.base_field = base_field
 
-    def is_simple_expression(self):
+    @property
+    def can_use_path(self):
         return self.is_simple_column
 
     @property
     def is_simple_column(self):
         return self.lhs.is_simple_column
 
-    def as_mql_path(self, compiler, connection):
-        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
-        return f"{lhs_mql}.{self.index}"
-
     def as_mql_expr(self, compiler, connection):
         lhs_mql = process_lhs(self, compiler, connection, as_path=False)
         return {"$arrayElemAt": [lhs_mql, self.index]}
+
+    def as_mql_path(self, compiler, connection):
+        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
+        return f"{lhs_mql}.{self.index}"
 
     @property
     def output_field(self):

@@ -5,6 +5,7 @@ from operator import attrgetter
 from django.core.exceptions import FieldDoesNotExist
 from django.db import connection, models
 from django.db.models.expressions import Value
+from django.db.models.functions import Concat
 from django.test import SimpleTestCase, TestCase
 from django.test.utils import CaptureQueriesContext, isolate_apps
 
@@ -188,12 +189,120 @@ class QueryingTests(TestCase):
             [self.egypt, self.wonders],
         )
 
-    def test_nested_array_index(self):
-        self.assertCountEqual(
-            Exhibit.objects.filter(
-                main_section__artifacts__restorations__0__restored_by="Zacarias"
-            ),
-            [self.lost_empires],
+    def test_array_index_expr(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(
+                Exhibit.objects.filter(sections__0__number=Value(2) - 1),
+                [self.egypt, self.wonders],
+            )
+        query = ctx.captured_queries[0]["sql"]
+        self.assertAggregateQuery(
+            query,
+            "model_fields__exhibit",
+            [
+                {
+                    "$match": {
+                        "$expr": {
+                            "$eq": [
+                                {
+                                    "$getField": {
+                                        "input": {"$arrayElemAt": ["$sections", 0]},
+                                        "field": "number",
+                                    }
+                                },
+                                {"$subtract": [{"$literal": 2}, {"$literal": 1}]},
+                            ]
+                        }
+                    }
+                }
+            ],
+        )
+
+    def test_array_index_path(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(
+                Exhibit.objects.filter(sections__0__number=1),
+                [self.egypt, self.wonders],
+            )
+        query = ctx.captured_queries[0]["sql"]
+        self.assertAggregateQuery(
+            query, "model_fields__exhibit", [{"$match": {"sections.0.number": 1}}]
+        )
+
+    def test_nested_array_index_expr(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(
+                Exhibit.objects.filter(
+                    main_section__artifacts__restorations__0__restored_by=Concat(
+                        Value("Z"), Value("acarias")
+                    )
+                ),
+                [self.lost_empires],
+            )
+        query = ctx.captured_queries[0]["sql"]
+        self.assertAggregateQuery(
+            query,
+            "model_fields__exhibit",
+            [
+                {
+                    "$match": {
+                        "$expr": {
+                            "$anyElementTrue": {
+                                "$ifNull": [
+                                    {
+                                        "$map": {
+                                            "input": {
+                                                "$getField": {
+                                                    "input": "$main_section",
+                                                    "field": "artifacts",
+                                                }
+                                            },
+                                            "as": "item",
+                                            "in": {
+                                                "$eq": [
+                                                    {
+                                                        "$getField": {
+                                                            "input": {
+                                                                "$arrayElemAt": [
+                                                                    "$$item.restorations",
+                                                                    0,
+                                                                ]
+                                                            },
+                                                            "field": "restored_by",
+                                                        }
+                                                    },
+                                                    {
+                                                        "$concat": [
+                                                            {"$ifNull": ["Z", ""]},
+                                                            {"$ifNull": ["acarias", ""]},
+                                                        ]
+                                                    },
+                                                ]
+                                            },
+                                        }
+                                    },
+                                    [],
+                                ]
+                            }
+                        }
+                    }
+                }
+            ],
+        )
+
+    def test_nested_array_index_path(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(
+                Exhibit.objects.filter(
+                    main_section__artifacts__restorations__0__restored_by="Zacarias"
+                ),
+                [self.lost_empires],
+            )
+        query = ctx.captured_queries[0]["sql"]
+        self.assertAggregateQuery(
+            query,
+            "model_fields__exhibit",
+            [{"$match": {"main_section.artifacts.restorations.0.restored_by": "Zacarias"}}],
         )
 
     def test_array_slice(self):
@@ -316,6 +425,13 @@ class QueryingTests(TestCase):
         """Querying from a foreign key to an EmbeddedModelArrayField."""
         qs = Tour.objects.filter(exhibit__sections__number=1)
         self.assertCountEqual(qs, [self.egypt_tour, self.wonders_tour])
+
+    def test_foreign_field_exact_expr(self):
+        """Querying from a foreign key to an EmbeddedModelArrayField."""
+        with self.assertNumQueries(1) as ctx:
+            qs = Tour.objects.filter(exhibit__sections__number=Value(2) - Value(1))
+            self.assertCountEqual(qs, [self.egypt_tour, self.wonders_tour])
+        self.assertIn("anyElementTrue", ctx.captured_queries[0]["sql"])
 
     def test_foreign_field_with_slice(self):
         qs = Tour.objects.filter(exhibit__sections__0_2__number__in=[1, 2])

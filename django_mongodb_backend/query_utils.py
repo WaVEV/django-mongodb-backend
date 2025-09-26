@@ -1,6 +1,8 @@
+import re
+
 from django.core.exceptions import FullResultSet
 from django.db.models.aggregates import Aggregate
-from django.db.models.expressions import CombinedExpression, Value
+from django.db.models.expressions import CombinedExpression, Func, Value
 from django.db.models.sql.query import Query
 
 
@@ -59,7 +61,6 @@ def regex_expr(field, regex_vals, insensitive=False):
 
 def regex_match(field, regex, insensitive=False):
     options = "i" if insensitive else ""
-    # return {"$regexMatch": {"input": field, "regex": regex, "options": options}}
     return {field: {"$regex": regex, "$options": options}}
 
 
@@ -75,23 +76,24 @@ def is_constant_value(value):
     if hasattr(value, "get_source_expressions"):
         # Temporary: similar limitation as above, sub-expressions should be
         # resolved in the future
-        simple_sub_expressions = all(map(is_constant_value, value.get_source_expressions()))
+        constants_sub_expressions = all(map(is_constant_value, value.get_source_expressions()))
     else:
-        simple_sub_expressions = True
-    return (
-        simple_sub_expressions
-        and isinstance(value, Value)
-        and not (
-            isinstance(value, Query)
-            or value.contains_aggregate
-            or value.contains_over_clause
-            or value.contains_column_references
-            or value.contains_subquery
-        )
+        constants_sub_expressions = True
+    constants_sub_expressions = constants_sub_expressions and not (
+        isinstance(value, Query)
+        or value.contains_aggregate
+        or value.contains_over_clause
+        or value.contains_column_references
+        or value.contains_subquery
+    )
+    return constants_sub_expressions and (
+        isinstance(value, Value)
+        or
+        # Some closed functions cannot yet be converted to constant values.
+        # Allow Func with can_use_path as a temporary exception.
+        (isinstance(value, Func) and value.can_use_path)
     )
 
 
-def is_simple_expression(self):
-    simple_column = getattr(self.lhs, "is_simple_column", False)
-    constant_value = is_constant_value(self.rhs)
-    return simple_column and constant_value
+def valid_path_key_name(key_name):
+    return bool(re.fullmatch(r"[A-Za-z0-9_]+", key_name))
