@@ -23,7 +23,7 @@ from ..query_utils import process_lhs, process_rhs
 
 def build_json_mql_path(lhs, key_transforms, as_path=False):
     # Build the MQL path using the collected key transforms.
-    if as_path and lhs:
+    if as_path:
         return ".".join(chain([lhs], key_transforms))
     result = lhs
     for key in key_transforms:
