@@ -198,16 +198,6 @@ class EmbeddedModelTransform(Transform):
             f"{suggestion}"
         )
 
-    def as_mql_path(self, compiler, connection):
-        previous = self
-        key_transforms = []
-        while isinstance(previous, EmbeddedModelTransform):
-            key_transforms.insert(0, previous.key_name)
-            previous = previous.lhs
-        mql = previous.as_mql(compiler, connection, as_path=True)
-        mql_path = ".".join(key_transforms)
-        return f"{mql}.{mql_path}"
-
     def as_mql_expr(self, compiler, connection):
         previous = self
         columns = []
@@ -218,6 +208,16 @@ class EmbeddedModelTransform(Transform):
         for column in columns:
             mql = {"$getField": {"input": mql, "field": column}}
         return mql
+
+    def as_mql_path(self, compiler, connection):
+        previous = self
+        key_transforms = []
+        while isinstance(previous, EmbeddedModelTransform):
+            key_transforms.insert(0, previous.key_name)
+            previous = previous.lhs
+        mql = previous.as_mql(compiler, connection, as_path=True)
+        mql_path = ".".join(key_transforms)
+        return f"{mql}.{mql_path}"
 
     @property
     def output_field(self):

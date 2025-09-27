@@ -138,7 +138,7 @@ class EmbeddedModelArrayFieldBuiltinLookup(Lookup):
         lhs_mql = process_lhs(self, compiler, connection)
         inner_lhs_mql = lhs_mql["$ifNull"][0]["$map"]["in"]
         values = process_rhs(self, compiler, connection)
-        lhs_mql["$ifNull"][0]["$map"]["in"] = connection.mongo_operators_expr[self.lookup_name](
+        lhs_mql["$ifNull"][0]["$map"]["in"] = connection.mongo_expr_operators[self.lookup_name](
             inner_lhs_mql, values
         )
         return {"$anyElementTrue": lhs_mql}
@@ -231,7 +231,6 @@ class EmbeddedModelArrayFieldLessThanOrEqual(
 
 class EmbeddedModelArrayFieldTransform(Transform):
     field_class_name = "EmbeddedModelArrayField"
-    PREFIX_ITERABLE = "item"
 
     def __init__(self, field, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -292,13 +291,6 @@ class EmbeddedModelArrayFieldTransform(Transform):
             f"{suggestion}"
         )
 
-    def as_mql_path(self, compiler, connection):
-        inner_lhs_mql = self._lhs.as_mql(compiler, connection, as_path=True).removeprefix(
-            f"${self.PREFIX_ITERABLE}."
-        )
-        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
-        return f"{lhs_mql}.{inner_lhs_mql}"
-
     def as_mql_expr(self, compiler, connection):
         inner_lhs_mql = self._lhs.as_mql(compiler, connection)
         lhs_mql = process_lhs(self, compiler, connection)
@@ -307,13 +299,18 @@ class EmbeddedModelArrayFieldTransform(Transform):
                 {
                     "$map": {
                         "input": lhs_mql,
-                        "as": self.PREFIX_ITERABLE,
+                        "as": "item",
                         "in": inner_lhs_mql,
                     }
                 },
                 [],
             ]
         }
+
+    def as_mql_path(self, compiler, connection):
+        inner_lhs_mql = self._lhs.as_mql(compiler, connection, as_path=True).removeprefix("$item.")
+        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
+        return f"{lhs_mql}.{inner_lhs_mql}"
 
     @property
     def output_field(self):
