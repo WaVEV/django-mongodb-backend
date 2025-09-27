@@ -198,25 +198,25 @@ class EmbeddedModelTransform(Transform):
             f"{suggestion}"
         )
 
-    def as_mql_expr(self, compiler, connection):
+    def _get_target_path(self):
         previous = self
         columns = []
         while isinstance(previous, EmbeddedModelTransform):
             columns.insert(0, previous.field.column)
             previous = previous.lhs
-        mql = previous.as_mql(compiler, connection)
-        for column in columns:
-            mql = {"$getField": {"input": mql, "field": column}}
+        return columns, previous
+
+    def as_mql_expr(self, compiler, connection):
+        columns, parent_field = self._get_target_path()
+        mql = parent_field.as_mql(compiler, connection)
+        for key in columns:
+            mql = {"$getField": {"input": mql, "field": key}}
         return mql
 
     def as_mql_path(self, compiler, connection):
-        previous = self
-        key_transforms = []
-        while isinstance(previous, EmbeddedModelTransform):
-            key_transforms.insert(0, previous.key_name)
-            previous = previous.lhs
-        mql = previous.as_mql(compiler, connection, as_path=True)
-        mql_path = ".".join(key_transforms)
+        columns, parent_field = self._get_target_path()
+        mql = parent_field.as_mql(compiler, connection, as_path=True)
+        mql_path = ".".join(columns)
         return f"{mql}.{mql_path}"
 
     @property
