@@ -244,14 +244,16 @@ class QueryingTests(TestCase):
         )
         self.assertCountEqual(Book.objects.filter(author__address__city="NYC"), [obj])
 
-    def test_annotate(self):
+    def test_filter_by_simple_annotate(self):
         obj = Book.objects.create(
             author=Author(name="Shakespeare", age=55, address=Address(city="NYC", state="NY"))
         )
-        book_from_ny = (
-            Book.objects.annotate(city=F("author__address__city")).filter(city="NYC").first()
-        )
-        self.assertCountEqual(book_from_ny.city, obj.author.address.city)
+        with self.assertNumQueries(1) as ctx:
+            book_from_ny = (
+                Book.objects.annotate(city=F("author__address__city")).filter(city="NYC").first()
+            )
+            self.assertCountEqual(book_from_ny.city, obj.author.address.city)
+        self.assertIn("{'$match': {'author.address.city': 'NYC'}}", ctx.captured_queries[0]["sql"])
 
 
 class ArrayFieldTests(TestCase):

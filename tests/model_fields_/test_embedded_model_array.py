@@ -312,10 +312,12 @@ class QueryingTests(TestCase):
         with self.assertRaisesMessage(ValueError, msg):
             Exhibit.objects.filter(sections__artifacts__name="")
 
-    def test_foreign_field_exact(self):
+    def test_foreign_field_exact_path(self):
         """Querying from a foreign key to an EmbeddedModelArrayField."""
-        qs = Tour.objects.filter(exhibit__sections__number=1)
-        self.assertCountEqual(qs, [self.egypt_tour, self.wonders_tour])
+        with self.assertNumQueries(1) as ctx:
+            qs = Tour.objects.filter(exhibit__sections__number=1)
+            self.assertCountEqual(qs, [self.egypt_tour, self.wonders_tour])
+        self.assertNotIn("anyElementTrue", ctx.captured_queries[0]["sql"])
 
     def test_foreign_field_exact_expr(self):
         """Querying from a foreign key to an EmbeddedModelArrayField."""

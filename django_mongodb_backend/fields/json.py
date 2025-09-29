@@ -183,6 +183,15 @@ def key_transform_in_path(self, compiler, connection):
 
 
 def key_transform_is_null_expr(self, compiler, connection):
+    """
+    Return MQL to check the nullability of a key.
+
+    If `isnull=True`, the query matches objects where the key is missing or the
+    root column is null. If `isnull=False`, the query negates the result to
+    match objects where the key exists.
+
+    Reference: https://code.djangoproject.com/ticket/32252
+    """
     previous = self.lhs
     while isinstance(previous, KeyTransform):
         previous = previous.lhs
@@ -194,13 +203,7 @@ def key_transform_is_null_expr(self, compiler, connection):
 
 def key_transform_is_null_path(self, compiler, connection):
     """
-    Return MQL to check the nullability of a key.
-
-    If `isnull=True`, the query matches objects where the key is missing or the
-    root column is null. If `isnull=False`, the query negates the result to
-    match objects where the key exists.
-
-    Reference: https://code.djangoproject.com/ticket/32252
+    Return MQL to check the nullability of a key using the operator $exists.
     """
     lhs_mql = process_lhs(self, compiler, connection, as_path=True)
     rhs_mql = process_rhs(self, compiler, connection, as_path=True)
