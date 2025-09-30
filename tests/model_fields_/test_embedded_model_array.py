@@ -10,6 +10,7 @@ from django.test.utils import CaptureQueriesContext, isolate_apps
 
 from django_mongodb_backend.fields import ArrayField, EmbeddedModelArrayField
 from django_mongodb_backend.models import EmbeddedModel
+from django_mongodb_backend.test import MongoTestCaseMixin
 
 from .models import Artifact, Audit, Exhibit, Movie, Restoration, Review, Section, Tour
 
@@ -84,7 +85,7 @@ class ModelTests(TestCase):
         self.assertEqual(query[0]["reviews"][0]["title_"], "Awesome")
 
 
-class QueryingTests(TestCase):
+class QueryingTests(MongoTestCaseMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.egypt = Exhibit.objects.create(
@@ -177,23 +178,203 @@ class QueryingTests(TestCase):
         cls.audit_2 = Audit.objects.create(section_number=2, reviewed=True)
         cls.audit_3 = Audit.objects.create(section_number=5, reviewed=False)
 
-    def test_exact(self):
-        self.assertCountEqual(
-            Exhibit.objects.filter(sections__number=1), [self.egypt, self.wonders]
+    def test_exact_expr(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(
+                Exhibit.objects.filter(sections__number=Value(2) - 1), [self.egypt, self.wonders]
+            )
+        query = ctx.captured_queries[0]["sql"]
+        self.assertAggregateQuery(
+            query,
+            "model_fields__exhibit",
+            [
+                {
+                    "$match": {
+                        "$expr": {
+                            "$anyElementTrue": {
+                                "$ifNull": [
+                                    {
+                                        "$map": {
+                                            "input": "$sections",
+                                            "as": "item",
+                                            "in": {
+                                                "$eq": [
+                                                    "$$item.number",
+                                                    {
+                                                        "$subtract": [
+                                                            {"$literal": 2},
+                                                            {"$literal": 1},
+                                                        ]
+                                                    },
+                                                ]
+                                            },
+                                        }
+                                    },
+                                    [],
+                                ]
+                            }
+                        }
+                    }
+                }
+            ],
         )
 
-    def test_array_index(self):
-        self.assertCountEqual(
-            Exhibit.objects.filter(sections__0__number=1),
-            [self.egypt, self.wonders],
+    def test_exact_path(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(
+                Exhibit.objects.filter(sections__number=1), [self.egypt, self.wonders]
+            )
+        query = ctx.captured_queries[0]["sql"]
+        self.assertAggregateQuery(
+            query, "model_fields__exhibit", [{"$match": {"sections.number": 1}}]
         )
 
-    def test_nested_array_index(self):
-        self.assertCountEqual(
-            Exhibit.objects.filter(
-                main_section__artifacts__restorations__0__restored_by="Zacarias"
-            ),
-            [self.lost_empires],
+    def test_array_index_expr(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(
+                Exhibit.objects.filter(sections__0__number=Value(2) - 1),
+                [self.egypt, self.wonders],
+            )
+        query = ctx.captured_queries[0]["sql"]
+        self.assertAggregateQuery(
+            query,
+            "model_fields__exhibit",
+            [
+                {
+                    "$match": {
+                        "$expr": {
+                            "$eq": [
+                                {
+                                    "$getField": {
+                                        "input": {"$arrayElemAt": ["$sections", 0]},
+                                        "field": "number",
+                                    }
+                                },
+                                {"$subtract": [{"$literal": 2}, {"$literal": 1}]},
+                            ]
+                        }
+                    }
+                }
+            ],
+        )
+
+    def test_array_index_path(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(
+                Exhibit.objects.filter(sections__0__number=1),
+                [self.egypt, self.wonders],
+            )
+        query = ctx.captured_queries[0]["sql"]
+        self.assertAggregateQuery(
+            query, "model_fields__exhibit", [{"$match": {"sections.0.number": 1}}]
+        )
+
+    def test_nested_array_index_expr(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(
+                Exhibit.objects.filter(
+                    main_section__artifacts__restorations__0__restored_by="Zacarias"
+                ),
+                [self.lost_empires],
+            )
+        query = ctx.captured_queries[0]["sql"]
+        self.assertAggregateQuery(
+            query,
+            "model_fields__exhibit",
+            [
+                {
+                    "$match": {
+                        "$expr": {
+                            "$anyElementTrue": {
+                                "$ifNull": [
+                                    {
+                                        "$map": {
+                                            "input": {
+                                                "$getField": {
+                                                    "input": "$main_section",
+                                                    "field": "artifacts",
+                                                }
+                                            },
+                                            "as": "item",
+                                            "in": {
+                                                "$eq": [
+                                                    {
+                                                        "$getField": {
+                                                            "input": {
+                                                                "$arrayElemAt": [
+                                                                    "$$item.restorations",
+                                                                    0,
+                                                                ]
+                                                            },
+                                                            "field": "restored_by",
+                                                        }
+                                                    },
+                                                    "Zacarias",
+                                                ]
+                                            },
+                                        }
+                                    },
+                                    [],
+                                ]
+                            }
+                        }
+                    }
+                }
+            ],
+        )
+
+    def test_nested_array_index_path(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(
+                Exhibit.objects.filter(
+                    main_section__artifacts__restorations__0__restored_by="Zacarias"
+                ),
+                [self.lost_empires],
+            )
+        query = ctx.captured_queries[0]["sql"]
+        self.assertAggregateQuery(
+            query,
+            "model_fields__exhibit",
+            [
+                {
+                    "$match": {
+                        "$expr": {
+                            "$anyElementTrue": {
+                                "$ifNull": [
+                                    {
+                                        "$map": {
+                                            "input": {
+                                                "$getField": {
+                                                    "input": "$main_section",
+                                                    "field": "artifacts",
+                                                }
+                                            },
+                                            "as": "item",
+                                            "in": {
+                                                "$eq": [
+                                                    {
+                                                        "$getField": {
+                                                            "input": {
+                                                                "$arrayElemAt": [
+                                                                    "$$item.restorations",
+                                                                    0,
+                                                                ]
+                                                            },
+                                                            "field": "restored_by",
+                                                        }
+                                                    },
+                                                    "Zacarias",
+                                                ]
+                                            },
+                                        }
+                                    },
+                                    [],
+                                ]
+                            }
+                        }
+                    }
+                }
+            ],
         )
 
     def test_array_slice(self):
@@ -207,8 +388,20 @@ class QueryingTests(TestCase):
             kwargs = {f"main_section__artifacts__metadata__origin__{lookup}": ["Pergamon", "Egypt"]}
             with CaptureQueriesContext(connection) as captured_queries:
                 self.assertCountEqual(Exhibit.objects.filter(**kwargs), [])
-            self.assertIn(
-                f"'main_section.artifacts.metadata.origin.{lookup}':", captured_queries[0]["sql"]
+            query = captured_queries[0]["sql"]
+            self.assertAggregateQuery(
+                query,
+                "model_fields__exhibit",
+                [
+                    {
+                        "$match": {
+                            f"main_section.artifacts.metadata.origin.{lookup}": [
+                                "Pergamon",
+                                "Egypt",
+                            ]
+                        }
+                    }
+                ],
             )
 
     def test_len(self):

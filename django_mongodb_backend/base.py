@@ -2,6 +2,7 @@ import contextlib
 import logging
 import os
 
+from bson import Decimal128
 from django.core.exceptions import EmptyResultSet, FullResultSet, ImproperlyConfigured
 from django.db import DEFAULT_DB_ALIAS
 from django.db.backends.base.base import BaseDatabaseWrapper
@@ -149,8 +150,13 @@ class DatabaseWrapper(BaseDatabaseWrapper):
             conditions.append({a: {"$gte": b[0]}})
         if end is not None:
             conditions.append({a: {"$lte": b[1]}})
-        if start is not None and end is not None and start > end:
-            raise EmptyResultSet
+        if start is not None and end is not None:
+            if isinstance(start, Decimal128):
+                start = start.to_decimal()
+            if isinstance(end, Decimal128):
+                end = end.to_decimal()
+            if start > end:
+                raise EmptyResultSet
         if not conditions:
             raise FullResultSet
         return {"$and": conditions}
