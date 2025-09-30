@@ -2,7 +2,8 @@ import contextlib
 import logging
 import os
 
-from django.core.exceptions import ImproperlyConfigured
+from bson import Decimal128
+from django.core.exceptions import EmptyResultSet, FullResultSet, ImproperlyConfigured
 from django.db import DEFAULT_DB_ALIAS
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.backends.utils import debug_transaction
@@ -143,14 +144,21 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     }
 
     def range_match(a, b):
-        ## TODO: MAKE A TEST TO TEST WHEN BOTH ENDS ARE NONE. WHAT SHALL I RETURN?
         conditions = []
-        if b[0] is not None:
+        start, end = b
+        if start is not None:
             conditions.append({a: {"$gte": b[0]}})
-        if b[1] is not None:
+        if end is not None:
             conditions.append({a: {"$lte": b[1]}})
         if not conditions:
-            return {"$literal": True}
+            raise FullResultSet
+        if start is not None and end is not None:
+            if isinstance(start, Decimal128):
+                start = start.to_decimal()
+            if isinstance(end, Decimal128):
+                end = end.to_decimal()
+            if start > end:
+                raise EmptyResultSet
         return {"$and": conditions}
 
     # match, path, find? don't know which name use.

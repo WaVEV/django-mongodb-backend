@@ -10,13 +10,14 @@ from django.db.models import (
     Max,
     OuterRef,
     Sum,
+    Value,
 )
-from django.db.models.expressions import Value
 from django.test import SimpleTestCase, TestCase
 from django.test.utils import isolate_apps
 
 from django_mongodb_backend.fields import EmbeddedModelField
 from django_mongodb_backend.models import EmbeddedModel
+from django_mongodb_backend.test import MongoTestCaseMixin
 
 from .models import (
     Address,
@@ -131,7 +132,7 @@ class ModelTests(TestCase):
         self.assertEqual(query[0]["data"]["integer_"], 5)
 
 
-class QueryingTests(TestCase):
+class QueryingTests(MongoTestCaseMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.objs = [
@@ -585,14 +586,16 @@ class QueryingTests(TestCase):
         )
         self.assertCountEqual(Book.objects.filter(author__address__city="NYC"), [obj])
 
-    def test_annotate(self):
+    def test_filter_by_simple_annotate(self):
         obj = Book.objects.create(
             author=Author(name="Shakespeare", age=55, address=Address(city="NYC", state="NY"))
         )
-        book_from_ny = (
-            Book.objects.annotate(city=F("author__address__city")).filter(city="NYC").first()
-        )
-        self.assertCountEqual(book_from_ny.city, obj.author.address.city)
+        with self.assertNumQueries(1) as ctx:
+            book_from_ny = (
+                Book.objects.annotate(city=F("author__address__city")).filter(city="NYC").first()
+            )
+            self.assertCountEqual(book_from_ny.city, obj.author.address.city)
+        self.assertIn("{'$match': {'author.address.city': 'NYC'}}", ctx.captured_queries[0]["sql"])
 
 
 class ArrayFieldTests(TestCase):
