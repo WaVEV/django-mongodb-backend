@@ -30,11 +30,7 @@ from ..query_utils import process_lhs
 
 
 def base_expression(self, compiler, connection, as_path=False, **extra):
-    if (
-        as_path
-        and hasattr(self, "as_mql_path")
-        and getattr(self, "is_simple_expression", lambda: False)()
-    ):
+    if as_path and hasattr(self, "as_mql_path") and getattr(self, "can_use_path", False):
         return self.as_mql_path(compiler, connection, **extra)
 
     expr = self.as_mql_expr(compiler, connection, **extra)

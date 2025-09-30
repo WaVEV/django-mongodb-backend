@@ -292,10 +292,6 @@ def trunc_time(self, compiler, connection):
     }
 
 
-def is_simple_expression(self):  # noqa: ARG001
-    return False
-
-
 def register_functions():
     Cast.as_mql_expr = cast
     Concat.as_mql_expr = concat
@@ -323,4 +319,4 @@ def register_functions():
     TruncDate.as_mql_expr = trunc_date
     TruncTime.as_mql_expr = trunc_time
     Upper.as_mql_expr = preserve_null("toUpper")
-    Func.is_simple_expression = is_simple_expression
+    Func.can_use_path = False

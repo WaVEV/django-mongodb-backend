@@ -247,7 +247,8 @@ class EmbeddedModelArrayFieldTransform(Transform):
         self._lhs = self._sub_transform(self._lhs, *args, **kwargs)
         return self
 
-    def is_simple_expression(self):
+    @property
+    def can_use_path(self):
         return self.is_simple_column
 
     @cached_property

@@ -167,7 +167,8 @@ class EmbeddedModelTransform(Transform):
     def get_lookup(self, name):
         return self.field.get_lookup(name)
 
-    def is_simple_expression(self):
+    @property
+    def can_use_path(self):
         return self.is_simple_column
 
     @cached_property

@@ -138,14 +138,15 @@ def uuid_text_mixin(self, compiler, connection):  # noqa: ARG001
     raise NotSupportedError("Pattern lookups on UUIDField are not supported.")
 
 
-def is_simple_expression(self):
+@property
+def can_use_path(self):
     simple_column = getattr(self.lhs, "is_simple_column", False)
     constant_value = is_constant_value(self.rhs)
     return simple_column and constant_value
 
 
 def register_lookups():
-    Lookup.is_simple_expression = is_simple_expression
+    Lookup.can_use_path = can_use_path
     BuiltinLookup.as_mql_path = builtin_lookup_path
     BuiltinLookup.as_mql_expr = builtin_lookup_expr
     FieldGetDbPrepValueIterableMixin.resolve_expression_parameter = (

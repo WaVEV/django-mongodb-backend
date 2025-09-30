@@ -72,6 +72,7 @@ def _has_key_predicate(path, root_column=None, negated=False, as_path=False):
     return result
 
 
+@property
 def has_key_check_simple_expression(self):
     rhs = [self.rhs] if not isinstance(self.rhs, (list, tuple)) else self.rhs
     return self.is_simple_column and all(key.isalnum() for key in rhs)
@@ -147,7 +148,7 @@ def key_transform_in(self, compiler, connection, as_path=False):
     Return MQL to check if a JSON path exists and that its values are in the
     set of specified values (rhs).
     """
-    if as_path and self.is_simple_expression():
+    if as_path and self.can_use_path():
         return builtin_lookup_path(self, compiler, connection)
 
     lhs_mql = process_lhs(self, compiler, connection)
@@ -226,6 +227,7 @@ def key_transform_numeric_lookup_mixin_path(self, compiler, connection):
     return builtin_lookup_path(self, compiler, connection)
 
 
+@property
 def keytransform_is_simple_column(self):
     previous = self
     while isinstance(previous, KeyTransform):
@@ -242,11 +244,11 @@ def register_json_field():
     HasKey.mongo_operator = None
     HasKeyLookup.as_mql_path = partialmethod(has_key_lookup, as_path=True)
     HasKeyLookup.as_mql_expr = partialmethod(has_key_lookup, as_path=False)
-    HasKeyLookup.is_simple_expression = has_key_check_simple_expression
+    HasKeyLookup.can_use_path = has_key_check_simple_expression
     HasKeys.mongo_operator = "$and"
     JSONExact.process_rhs = json_exact_process_rhs
-    KeyTransform.is_simple_column = property(keytransform_is_simple_column)
-    KeyTransform.is_simple_expression = keytransform_is_simple_column
+    KeyTransform.is_simple_column = keytransform_is_simple_column
+    KeyTransform.can_use_path = keytransform_is_simple_column
     KeyTransform.as_mql_path = partialmethod(key_transform, as_path=True)
     KeyTransform.as_mql_expr = partialmethod(key_transform, as_path=False)
     KeyTransformExact.as_mql_expr = key_transform_exact_expr

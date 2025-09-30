@@ -381,7 +381,8 @@ class IndexTransform(Transform):
         self.index = index
         self.base_field = base_field
 
-    def is_simple_expression(self):
+    @property
+    def can_use_path(self):
         return self.is_simple_column
 
     @property
