@@ -268,8 +268,6 @@ class ArrayContains(ArrayRHSMixin, FieldGetDbPrepValueMixin, Lookup):
     def as_mql_path(self, compiler, connection):
         lhs_mql = process_lhs(self, compiler, connection, as_path=True)
         value = process_rhs(self, compiler, connection, as_path=True)
-        if value is None:
-            return False
         return {lhs_mql: {"$all": value}}
 
 
