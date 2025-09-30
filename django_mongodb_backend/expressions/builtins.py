@@ -42,7 +42,7 @@ def case(self, compiler, connection):
     for case in self.cases:
         case_mql = {}
         try:
-            case_mql["case"] = case.as_mql(compiler, connection, as_path=False)
+            case_mql["case"] = case.as_mql(compiler, connection)
         except EmptyResultSet:
             continue
         except FullResultSet:
@@ -92,16 +92,16 @@ def col_pairs(self, compiler, connection, as_path=False):
     return cols[0].as_mql(compiler, connection, as_path=as_path)
 
 
-def combined_expression(self, compiler, connection, as_path=False):
+def combined_expression(self, compiler, connection):
     expressions = [
-        self.lhs.as_mql(compiler, connection, as_path=as_path),
-        self.rhs.as_mql(compiler, connection, as_path=as_path),
+        self.lhs.as_mql(compiler, connection),
+        self.rhs.as_mql(compiler, connection),
     ]
     return connection.ops.combine_expression(self.connector, expressions)
 
 
 def expression_wrapper_expr(self, compiler, connection):
-    return self.expression.as_mql(compiler, connection, as_path=False)
+    return self.expression.as_mql(compiler, connection)
 
 
 def negated_expression_expr(self, compiler, connection):
@@ -183,7 +183,7 @@ def ref_is_simple_column(self):
     return self.source.is_simple_column
 
 
-def star(self, compiler, connection, as_path=False):  # noqa: ARG001
+def star(self, compiler, connection):  # noqa: ARG001
     return {"$literal": True}
 
 
@@ -247,7 +247,7 @@ def register_expressions():
     Ref.as_mql = ref
     Ref.is_simple_column = ref_is_simple_column
     ResolvedOuterRef.as_mql = ResolvedOuterRef.as_sql
-    Star.as_mql = star
+    Star.as_mql_expr = star
     Subquery.as_mql_expr = subquery
     When.as_mql = when
     Value.as_mql = value
