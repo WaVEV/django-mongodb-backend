@@ -155,7 +155,7 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
                     "$match": {
                         "$expr": {
                             "$eq": [
-                                {"$getField": {"input": "$data", "field": "integer"}},
+                                {"$getField": {"input": "$data", "field": "integer_"}},
                                 {"$subtract": [{"$literal": 4}, {"$literal": 1}]},
                             ]
                         }
@@ -168,7 +168,7 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
         with self.assertNumQueries(1) as ctx:
             self.assertCountEqual(Holder.objects.filter(data__integer=3), [self.objs[3]])
         query = ctx.captured_queries[0]["sql"]
-        self.assertAggregateQuery(query, "model_fields__holder", [{"$match": {"data.integer": 3}}])
+        self.assertAggregateQuery(query, "model_fields__holder", [{"$match": {"data.integer_": 3}}])
 
     def test_lt_expr(self):
         with self.assertNumQueries(1) as ctx:
@@ -186,7 +186,7 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
                             "$and": [
                                 {
                                     "$lt": [
-                                        {"$getField": {"input": "$data", "field": "integer"}},
+                                        {"$getField": {"input": "$data", "field": "integer_"}},
                                         {"$subtract": [{"$literal": 4}, {"$literal": 1}]},
                                     ]
                                 },
@@ -199,7 +199,7 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
                                                         "$type": {
                                                             "$getField": {
                                                                 "input": "$data",
-                                                                "field": "integer",
+                                                                "field": "integer_",
                                                             }
                                                         }
                                                     },
@@ -211,7 +211,7 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
                                                     {
                                                         "$getField": {
                                                             "input": "$data",
-                                                            "field": "integer",
+                                                            "field": "integer_",
                                                         }
                                                     },
                                                     None,
@@ -238,11 +238,11 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
                 {
                     "$match": {
                         "$and": [
-                            {"data.integer": {"$lt": 3}},
+                            {"data.integer_": {"$lt": 3}},
                             {
                                 "$and": [
-                                    {"data.integer": {"$exists": True}},
-                                    {"data.integer": {"$ne": None}},
+                                    {"data.integer_": {"$exists": True}},
+                                    {"data.integer_": {"$ne": None}},
                                 ]
                             },
                         ]
@@ -267,7 +267,7 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
                             "$and": [
                                 {
                                     "$lte": [
-                                        {"$getField": {"input": "$data", "field": "integer"}},
+                                        {"$getField": {"input": "$data", "field": "integer_"}},
                                         {"$subtract": [{"$literal": 4}, {"$literal": 1}]},
                                     ]
                                 },
@@ -280,7 +280,7 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
                                                         "$type": {
                                                             "$getField": {
                                                                 "input": "$data",
-                                                                "field": "integer",
+                                                                "field": "integer_",
                                                             }
                                                         }
                                                     },
@@ -292,7 +292,7 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
                                                     {
                                                         "$getField": {
                                                             "input": "$data",
-                                                            "field": "integer",
+                                                            "field": "integer_",
                                                         }
                                                     },
                                                     None,
@@ -320,11 +320,11 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
                 {
                     "$match": {
                         "$and": [
-                            {"data.integer": {"$lte": 3}},
+                            {"data.integer_": {"$lte": 3}},
                             {
                                 "$and": [
-                                    {"data.integer": {"$exists": True}},
-                                    {"data.integer": {"$ne": None}},
+                                    {"data.integer_": {"$exists": True}},
+                                    {"data.integer_": {"$ne": None}},
                                 ]
                             },
                         ]
@@ -347,7 +347,7 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
                     "$match": {
                         "$expr": {
                             "$gt": [
-                                {"$getField": {"input": "$data", "field": "integer"}},
+                                {"$getField": {"input": "$data", "field": "integer_"}},
                                 {"$subtract": [{"$literal": 4}, {"$literal": 1}]},
                             ]
                         }
@@ -361,7 +361,7 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
             self.assertCountEqual(Holder.objects.filter(data__integer__gt=3), self.objs[4:])
         query = ctx.captured_queries[0]["sql"]
         self.assertAggregateQuery(
-            query, "model_fields__holder", [{"$match": {"data.integer": {"$gt": 3}}}]
+            query, "model_fields__holder", [{"$match": {"data.integer_": {"$gt": 3}}}]
         )
 
     def test_gte_expr(self):
@@ -378,7 +378,7 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
                     "$match": {
                         "$expr": {
                             "$gte": [
-                                {"$getField": {"input": "$data", "field": "integer"}},
+                                {"$getField": {"input": "$data", "field": "integer_"}},
                                 {"$subtract": [{"$literal": 4}, {"$literal": 1}]},
                             ]
                         }
@@ -392,7 +392,7 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
             self.assertCountEqual(Holder.objects.filter(data__integer__gte=3), self.objs[3:])
         query = ctx.captured_queries[0]["sql"]
         self.assertAggregateQuery(
-            query, "model_fields__holder", [{"$match": {"data.integer": {"$gte": 3}}}]
+            query, "model_fields__holder", [{"$match": {"data.integer_": {"$gte": 3}}}]
         )
 
     def test_range_expr(self):
@@ -422,7 +422,7 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
                                                 {
                                                     "$getField": {
                                                         "input": "$data",
-                                                        "field": "integer",
+                                                        "field": "integer_",
                                                     }
                                                 },
                                                 {"$literal": 2},
@@ -465,7 +465,7 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
                                                 {
                                                     "$getField": {
                                                         "input": "$data",
-                                                        "field": "integer",
+                                                        "field": "integer_",
                                                     }
                                                 },
                                                 {"$subtract": [{"$literal": 5}, {"$literal": 1}]},
@@ -489,7 +489,13 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
         self.assertAggregateQuery(
             query,
             "model_fields__holder",
-            [{"$match": {"$and": [{"data.integer": {"$gte": 2}}, {"data.integer": {"$lte": 4}}]}}],
+            [
+                {
+                    "$match": {
+                        "$and": [{"data.integer_": {"$gte": 2}}, {"data.integer_": {"$lte": 4}}]
+                    }
+                }
+            ],
         )
 
     def test_exact_decimal(self):

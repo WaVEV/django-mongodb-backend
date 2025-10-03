@@ -18,7 +18,7 @@ from django.db.models.fields.json import (
 )
 
 from ..lookups import builtin_lookup_expr, builtin_lookup_path
-from ..query_utils import process_lhs, process_rhs
+from ..query_utils import process_lhs, process_rhs, valid_path_key_name
 
 
 def build_json_mql_path(lhs, key_transforms, as_path=False):
@@ -75,7 +75,7 @@ def _has_key_predicate(path, root_column=None, negated=False, as_path=False):
 @property
 def has_key_check_simple_expression(self):
     rhs = [self.rhs] if not isinstance(self.rhs, (list, tuple)) else self.rhs
-    return self.is_simple_column and all(key.isalnum() for key in rhs)
+    return self.is_simple_column and all(valid_path_key_name(key) for key in rhs)
 
 
 def has_key_lookup(self, compiler, connection, as_path=False):
@@ -231,7 +231,7 @@ def key_transform_numeric_lookup_mixin_path(self, compiler, connection):
 def keytransform_is_simple_column(self):
     previous = self
     while isinstance(previous, KeyTransform):
-        if not previous.key_name.isalnum():
+        if not valid_path_key_name(previous.key_name):
             return False
         previous = previous.lhs
     return previous.is_simple_column

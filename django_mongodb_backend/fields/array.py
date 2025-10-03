@@ -4,10 +4,11 @@ from django.core import checks, exceptions
 from django.db.models import Field, Func, IntegerField, Transform, Value
 from django.db.models.fields.mixins import CheckFieldDefaultMixin
 from django.db.models.lookups import Exact, FieldGetDbPrepValueMixin, In, Lookup
+from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 from ..forms import SimpleArrayField
-from ..query_utils import process_lhs, process_rhs
+from ..query_utils import is_constant_value, process_lhs, process_rhs
 from ..utils import prefix_validation_error
 from ..validators import ArrayMaxLengthValidator, LengthValidator
 
@@ -235,6 +236,20 @@ class Array(Func):
             expr.as_mql(compiler, connection, as_path=False)
             for expr in self.get_source_expressions()
         ]
+
+    def as_mql_path(self, compiler, connection):
+        return [
+            expr.as_mql(compiler, connection, as_path=True)
+            for expr in self.get_source_expressions()
+        ]
+
+    @cached_property
+    def can_use_path(self):
+        return all(is_constant_value(expr) for expr in self.get_source_expressions())
+
+    @property
+    def is_simple_column(self):
+        return False
 
 
 class ArrayRHSMixin:

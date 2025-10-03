@@ -8,6 +8,7 @@ from django.db.models.lookups import Transform
 from django.utils.functional import cached_property
 
 from .. import forms
+from ..query_utils import valid_path_key_name
 
 
 class EmbeddedModelField(models.Field):
@@ -174,8 +175,8 @@ class EmbeddedModelTransform(Transform):
     @cached_property
     def is_simple_column(self):
         previous = self
-        while isinstance(previous, KeyTransform):
-            if not previous.key_name.isalnum():
+        while isinstance(previous, EmbeddedModelTransform):
+            if not valid_path_key_name(previous._field.column):
                 return False
             previous = previous.lhs
         return previous.is_simple_column

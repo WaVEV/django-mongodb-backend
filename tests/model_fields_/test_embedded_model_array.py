@@ -5,6 +5,7 @@ from operator import attrgetter
 from django.core.exceptions import FieldDoesNotExist
 from django.db import connection, models
 from django.db.models.expressions import Value
+from django.db.models.functions import Concat
 from django.test import SimpleTestCase, TestCase
 from django.test.utils import CaptureQueriesContext, isolate_apps
 
@@ -273,7 +274,9 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
         with self.assertNumQueries(1) as ctx:
             self.assertCountEqual(
                 Exhibit.objects.filter(
-                    main_section__artifacts__restorations__0__restored_by="Zacarias"
+                    main_section__artifacts__restorations__0__restored_by=Concat(
+                        Value("Z"), Value("acarias")
+                    )
                 ),
                 [self.lost_empires],
             )
@@ -309,7 +312,12 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
                                                             "field": "restored_by",
                                                         }
                                                     },
-                                                    "Zacarias",
+                                                    {
+                                                        "$concat": [
+                                                            {"$ifNull": ["Z", ""]},
+                                                            {"$ifNull": ["acarias", ""]},
+                                                        ]
+                                                    },
                                                 ]
                                             },
                                         }
@@ -335,46 +343,7 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
         self.assertAggregateQuery(
             query,
             "model_fields__exhibit",
-            [
-                {
-                    "$match": {
-                        "$expr": {
-                            "$anyElementTrue": {
-                                "$ifNull": [
-                                    {
-                                        "$map": {
-                                            "input": {
-                                                "$getField": {
-                                                    "input": "$main_section",
-                                                    "field": "artifacts",
-                                                }
-                                            },
-                                            "as": "item",
-                                            "in": {
-                                                "$eq": [
-                                                    {
-                                                        "$getField": {
-                                                            "input": {
-                                                                "$arrayElemAt": [
-                                                                    "$$item.restorations",
-                                                                    0,
-                                                                ]
-                                                            },
-                                                            "field": "restored_by",
-                                                        }
-                                                    },
-                                                    "Zacarias",
-                                                ]
-                                            },
-                                        }
-                                    },
-                                    [],
-                                ]
-                            }
-                        }
-                    }
-                }
-            ],
+            [{"$match": {"main_section.artifacts.restorations.0.restored_by": "Zacarias"}}],
         )
 
     def test_array_slice(self):

@@ -9,7 +9,7 @@ from django.utils.functional import cached_property
 
 from .. import forms
 from ..lookups import builtin_lookup_path
-from ..query_utils import process_lhs, process_rhs
+from ..query_utils import process_lhs, process_rhs, valid_path_key_name
 from . import EmbeddedModelField
 from .array import ArrayField, ArrayLenTransform
 
@@ -240,6 +240,7 @@ class EmbeddedModelArrayFieldTransform(Transform):
         column_name = f"$item.{field.column}"
         column_target.db_column = column_name
         column_target.set_attributes_from_name(column_name)
+        self._field = field
         self._lhs = Col(None, column_target)
         self._sub_transform = None
 
@@ -255,7 +256,7 @@ class EmbeddedModelArrayFieldTransform(Transform):
     def is_simple_column(self):
         previous = self
         while isinstance(previous, EmbeddedModelArrayFieldTransform):
-            if not previous.key_name.isalnum():
+            if not valid_path_key_name(previous._field.column):
                 return False
             previous = previous.lhs
         return previous.is_simple_column and self._lhs.is_simple_column
