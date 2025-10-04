@@ -87,7 +87,7 @@ def concat(self, compiler, connection):
 def concat_pair(self, compiler, connection):
     # null on either side results in null for expression, wrap with coalesce.
     coalesced = self.coalesce()
-    return super(ConcatPair, coalesced).as_mql(compiler, connection)
+    return super(ConcatPair, coalesced).as_mql_expr(compiler, connection)
 
 
 def cot(self, compiler, connection):
