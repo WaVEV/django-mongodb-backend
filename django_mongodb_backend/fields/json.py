@@ -140,30 +140,11 @@ def key_transform_exact_path(self, compiler, connection):
     }
 
 
-def key_transform_in(self, compiler, connection, as_path=False):
+def key_transform_in_expr(self, compiler, connection):
     """
     Return MQL to check if a JSON path exists and that its values are in the
     set of specified values (rhs).
     """
-    if as_path and self.can_use_path():
-        return builtin_lookup_path(self, compiler, connection)
-
-    lhs_mql = process_lhs(self, compiler, connection)
-    # Traverse to the root column.
-    previous = self.lhs
-    while isinstance(previous, KeyTransform):
-        previous = previous.lhs
-    root_column = previous.as_mql(compiler, connection)
-    value = process_rhs(self, compiler, connection)
-    # Construct the expression to check if lhs_mql values are in rhs values.
-    expr = connection.mongo_expr_operators[self.lookup_name](lhs_mql, value)
-    expr = {"$and": [_has_key_predicate(lhs_mql, root_column), expr]}
-    if as_path:
-        return {"$expr": expr}
-    return expr
-
-
-def key_transform_in_expr(self, compiler, connection):
     lhs_mql = process_lhs(self, compiler, connection)
     # Traverse to the root column.
     previous = self.lhs
