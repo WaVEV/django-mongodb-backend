@@ -126,10 +126,6 @@ def key_transform(self, compiler, connection, as_path=False):
     return build_json_mql_path(lhs_mql, key_transforms, as_path=as_path)
 
 
-def key_transform_exact_expr(self, compiler, connection):
-    return builtin_lookup_expr(self, compiler, connection)
-
-
 def key_transform_exact_path(self, compiler, connection):
     lhs_mql = process_lhs(self, compiler, connection, as_path=True)
     return {
@@ -155,10 +151,6 @@ def key_transform_in_expr(self, compiler, connection):
     # Construct the expression to check if lhs_mql values are in rhs values.
     expr = connection.mongo_expr_operators[self.lookup_name](lhs_mql, value)
     return {"$and": [_has_key_predicate(lhs_mql, root_column), expr]}
-
-
-def key_transform_in_path(self, compiler, connection):
-    return builtin_lookup_path(self, compiler, connection)
 
 
 def key_transform_is_null_expr(self, compiler, connection):
@@ -201,10 +193,6 @@ def key_transform_numeric_lookup_mixin_expr(self, compiler, connection):
     return {"$and": [expr, not_missing_or_null]}
 
 
-def key_transform_numeric_lookup_mixin_path(self, compiler, connection):
-    return builtin_lookup_path(self, compiler, connection)
-
-
 @property
 def keytransform_is_simple_column(self):
     previous = self
@@ -220,20 +208,17 @@ def register_json_field():
     DataContains.as_mql = data_contains
     HasAnyKeys.mongo_operator = "$or"
     HasKey.mongo_operator = None
-    HasKeyLookup.as_mql_path = partialmethod(has_key_lookup, as_path=True)
     HasKeyLookup.as_mql_expr = partialmethod(has_key_lookup, as_path=False)
+    HasKeyLookup.as_mql_path = partialmethod(has_key_lookup, as_path=True)
     HasKeyLookup.can_use_path = has_key_check_simple_expression
     HasKeys.mongo_operator = "$and"
     JSONExact.process_rhs = json_exact_process_rhs
-    KeyTransform.is_simple_column = keytransform_is_simple_column
-    KeyTransform.can_use_path = keytransform_is_simple_column
-    KeyTransform.as_mql_path = partialmethod(key_transform, as_path=True)
     KeyTransform.as_mql_expr = partialmethod(key_transform, as_path=False)
-    KeyTransformExact.as_mql_expr = key_transform_exact_expr
+    KeyTransform.as_mql_path = partialmethod(key_transform, as_path=True)
+    KeyTransform.can_use_path = keytransform_is_simple_column
+    KeyTransform.is_simple_column = keytransform_is_simple_column
     KeyTransformExact.as_mql_path = key_transform_exact_path
-    KeyTransformIn.as_mql_path = key_transform_in_path
     KeyTransformIn.as_mql_expr = key_transform_in_expr
-    KeyTransformIsNull.as_mql_path = key_transform_is_null_path
     KeyTransformIsNull.as_mql_expr = key_transform_is_null_expr
-    KeyTransformNumericLookupMixin.as_mql_path = key_transform_numeric_lookup_mixin_path
+    KeyTransformIsNull.as_mql_path = key_transform_is_null_path
     KeyTransformNumericLookupMixin.as_mql_expr = key_transform_numeric_lookup_mixin_expr
