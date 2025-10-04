@@ -128,12 +128,12 @@ def func_expr(self, compiler, connection):
 
 
 def left(self, compiler, connection):
-    return self.get_substr().as_mql(compiler, connection, as_path=False)
+    return self.get_substr().as_mql(compiler, connection)
 
 
 def length(self, compiler, connection):
     # Check for null first since $strLenCP only accepts strings.
-    lhs_mql = process_lhs(self, compiler, connection, as_path=False)
+    lhs_mql = process_lhs(self, compiler, connection)
     return {"$cond": {"if": {"$eq": [lhs_mql, None]}, "then": None, "else": {"$strLenCP": lhs_mql}}}
 
 
@@ -141,7 +141,7 @@ def log(self, compiler, connection):
     # This function is usually log(base, num) but on MongoDB it's log(num, base).
     clone = self.copy()
     clone.set_source_expressions(self.get_source_expressions()[::-1])
-    return func(clone, compiler, connection, as_path=False)
+    return func(clone, compiler, connection)
 
 
 def now(self, compiler, connection):  # noqa: ARG001
@@ -150,9 +150,7 @@ def now(self, compiler, connection):  # noqa: ARG001
 
 def null_if(self, compiler, connection):
     """Return None if expr1==expr2 else expr1."""
-    expr1, expr2 = (
-        expr.as_mql(compiler, connection, as_path=False) for expr in self.get_source_expressions()
-    )
+    expr1, expr2 = (expr.as_mql(compiler, connection) for expr in self.get_source_expressions())
     return {"$cond": {"if": {"$eq": [expr1, expr2]}, "then": None, "else": expr1}}
 
 
@@ -160,7 +158,7 @@ def preserve_null(operator):
     # If the argument is null, the function should return null, not
     # $toLower/Upper's behavior of returning an empty string.
     def wrapped(self, compiler, connection):
-        lhs_mql = process_lhs(self, compiler, connection, as_path=False)
+        lhs_mql = process_lhs(self, compiler, connection)
         return {
             "$cond": {
                 "if": connection.mongo_expr_operators["isnull"](lhs_mql, True),
@@ -173,23 +171,18 @@ def preserve_null(operator):
 
 
 def replace(self, compiler, connection):
-    expression, text, replacement = process_lhs(self, compiler, connection, as_path=False)
+    expression, text, replacement = process_lhs(self, compiler, connection)
     return {"$replaceAll": {"input": expression, "find": text, "replacement": replacement}}
 
 
 def round_(self, compiler, connection):
     # Round needs its own function because it's a special case that inherits
     # from Transform but has two arguments.
-    return {
-        "$round": [
-            expr.as_mql(compiler, connection, as_path=False)
-            for expr in self.get_source_expressions()
-        ]
-    }
+    return {"$round": [expr.as_mql(compiler, connection) for expr in self.get_source_expressions()]}
 
 
 def str_index(self, compiler, connection):
-    lhs = process_lhs(self, compiler, connection, as_path=False)
+    lhs = process_lhs(self, compiler, connection)
     # StrIndex should be 0-indexed (not found) but it's -1-indexed on MongoDB.
     return {"$add": [{"$indexOfCP": lhs}, 1]}
 
@@ -253,7 +246,7 @@ def trunc_convert_value(self, value, expression, connection):
 
 def trunc_date(self, compiler, connection):
     # Cast to date rather than truncate to date.
-    lhs_mql = process_lhs(self, compiler, connection, as_path=False)
+    lhs_mql = process_lhs(self, compiler, connection)
     tzname = self.get_tzname()
     if tzname and tzname != "UTC":
         raise NotSupportedError(f"TruncDate with tzinfo ({tzname}) isn't supported on MongoDB.")
@@ -276,7 +269,7 @@ def trunc_time(self, compiler, connection):
     tzname = self.get_tzname()
     if tzname and tzname != "UTC":
         raise NotSupportedError(f"TruncTime with tzinfo ({tzname}) isn't supported on MongoDB.")
-    lhs_mql = process_lhs(self, compiler, connection, as_path=False)
+    lhs_mql = process_lhs(self, compiler, connection)
     return {
         "$dateFromString": {
             "dateString": {

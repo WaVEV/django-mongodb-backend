@@ -481,11 +481,11 @@ class SQLCompiler(compiler.SQLCompiler):
             query.lookup_pipeline = self.get_lookup_pipeline()
             where = self.get_where()
             try:
-                expr = where.as_mql(self, self.connection, as_path=True) if where else {}
+                match = where.as_mql(self, self.connection, as_path=True) if where else {}
             except FullResultSet:
                 query.match_mql = {}
             else:
-                query.match_mql = expr
+                query.match_mql = match
         if extra_fields:
             query.extra_fields = self.get_project_fields(extra_fields, force_expression=True)
         query.subqueries = self.subqueries

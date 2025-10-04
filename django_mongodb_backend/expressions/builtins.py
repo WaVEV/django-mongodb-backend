@@ -100,12 +100,12 @@ def combined_expression(self, compiler, connection):
     return connection.ops.combine_expression(self.connector, expressions)
 
 
-def expression_wrapper_expr(self, compiler, connection):
+def expression_wrapper(self, compiler, connection):
     return self.expression.as_mql(compiler, connection)
 
 
-def negated_expression_expr(self, compiler, connection):
-    return {"$not": expression_wrapper_expr(self, compiler, connection)}
+def negated_expression(self, compiler, connection):
+    return {"$not": expression_wrapper(self, compiler, connection)}
 
 
 def order_by(self, compiler, connection):
@@ -201,8 +201,8 @@ def exists(self, compiler, connection, get_wrapping_pipeline=None):
     return connection.mongo_expr_operators["isnull"](lhs_mql, False)
 
 
-def when(self, compiler, connection, as_path=False):
-    return self.condition.as_mql(compiler, connection, as_path=as_path)
+def when(self, compiler, connection):
+    return self.condition.as_mql(compiler, connection)
 
 
 def value(self, compiler, connection, as_path=False):  # noqa: ARG001
@@ -239,8 +239,8 @@ def register_expressions():
     CombinedExpression.as_mql_expr = combined_expression
     Exists.as_mql_expr = exists
     ExpressionList.as_mql = process_lhs
-    ExpressionWrapper.as_mql_expr = expression_wrapper_expr
-    NegatedExpression.as_mql_expr = negated_expression_expr
+    ExpressionWrapper.as_mql_expr = expression_wrapper
+    NegatedExpression.as_mql_expr = negated_expression
     OrderBy.as_mql_expr = order_by
     Query.as_mql = query
     RawSQL.as_mql = raw_sql
@@ -249,5 +249,5 @@ def register_expressions():
     ResolvedOuterRef.as_mql = ResolvedOuterRef.as_sql
     Star.as_mql_expr = star
     Subquery.as_mql_expr = subquery
-    When.as_mql = when
+    When.as_mql_expr = when
     Value.as_mql = value
