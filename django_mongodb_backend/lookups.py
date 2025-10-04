@@ -151,11 +151,11 @@ def register_lookups():
     FieldGetDbPrepValueIterableMixin.resolve_expression_parameter = (
         field_resolve_expression_parameter
     )
-    In.as_mql_path = RelatedIn.as_mql_path = wrap_in(builtin_lookup_path)
     In.as_mql_expr = RelatedIn.as_mql_expr = wrap_in(builtin_lookup_expr)
+    In.as_mql_path = RelatedIn.as_mql_path = wrap_in(builtin_lookup_path)
     In.get_subquery_wrapping_pipeline = get_subquery_wrapping_pipeline
-    IsNull.as_mql_path = is_null_path
     IsNull.as_mql_expr = is_null_expr
+    IsNull.as_mql_path = is_null_path
     Lookup.can_use_path = can_use_path
     PatternLookup.prep_lookup_value_mongo = pattern_lookup_prep_lookup_value
     # Patching the main method, it is not supported yet.
