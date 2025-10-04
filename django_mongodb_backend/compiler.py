@@ -714,9 +714,9 @@ class SQLCompiler(compiler.SQLCompiler):
                 value = (
                     False if empty_result_set_value is NotImplemented else empty_result_set_value
                 )
-                fields[collection][name] = Value(value).as_mql(self, self.connection, as_path=False)
+                fields[collection][name] = Value(value).as_mql(self, self.connection)
             except FullResultSet:
-                fields[collection][name] = Value(True).as_mql(self, self.connection, as_path=False)
+                fields[collection][name] = Value(True).as_mql(self, self.connection)
         # Annotations (stored in None) and the main collection's fields
         # should appear in the top-level of the fields dict.
         fields.update(fields.pop(None, {}))
