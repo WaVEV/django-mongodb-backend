@@ -336,12 +336,12 @@ def where_node(self, compiler, connection, as_path=False):
     return mql
 
 
-def nothing_node(self, compiler, connection, as_path=None):  # noqa: ARG001
+def nothing_node(self, compiler, connection):
     return self.as_sql(compiler, connection)
 
 
 def register_nodes():
     ExtraWhere.as_mql = extra_where
     Join.as_mql = join
-    NothingNode.as_mql = nothing_node
+    NothingNode.as_mql_expr = nothing_node
     WhereNode.as_mql = where_node

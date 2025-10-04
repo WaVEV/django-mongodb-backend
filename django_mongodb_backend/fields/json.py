@@ -54,10 +54,7 @@ def data_contains(self, compiler, connection, as_path=False):  # noqa: ARG001
 def _has_key_predicate(path, root_column=None, negated=False, as_path=False):
     """Return MQL to check for the existence of `path`."""
     if as_path:
-        # if not negated:
         return {path: {"$exists": not negated}}
-        # return {"$and": [{path: {"$exists": True}}, {path: {"$ne": None}}]}
-        # return {"$or": [{path: {"$exists": False}}, {path: None}]}
     result = {
         "$and": [
             # The path must exist (i.e. not be "missing").
@@ -81,9 +78,9 @@ def has_key_check_simple_expression(self):
 def has_key_lookup(self, compiler, connection, as_path=False):
     """Return MQL to check for the existence of a key."""
     rhs = self.rhs
+    lhs = process_lhs(self, compiler, connection, as_path=as_path)
     if not isinstance(rhs, (list, tuple)):
         rhs = [rhs]
-    lhs = process_lhs(self, compiler, connection, as_path=as_path)
     paths = []
     # Transform any "raw" keys into KeyTransforms to allow consistent handling
     # in the code that follows.
@@ -198,7 +195,7 @@ def key_transform_is_null_expr(self, compiler, connection):
         previous = previous.lhs
     root_column = previous.as_mql(compiler, connection)
     lhs_mql = process_lhs(self, compiler, connection, as_path=False)
-    rhs_mql = process_rhs(self, compiler, connection)
+    rhs_mql = process_rhs(self, compiler, connection, as_path=False)
     return _has_key_predicate(lhs_mql, root_column, negated=rhs_mql)
 
 

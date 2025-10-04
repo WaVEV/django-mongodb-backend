@@ -67,7 +67,7 @@ EXTRACT_OPERATORS = {
 
 def cast(self, compiler, connection):
     output_type = connection.data_types[self.output_field.get_internal_type()]
-    lhs_mql = process_lhs(self, compiler, connection, as_path=False)[0]
+    lhs_mql = process_lhs(self, compiler, connection)[0]
     if max_length := self.output_field.max_length:
         lhs_mql = {"$substrCP": [lhs_mql, 0, max_length]}
     # Skip the conversion for "object" as it doesn't need to be transformed for
@@ -81,22 +81,22 @@ def cast(self, compiler, connection):
 
 
 def concat(self, compiler, connection):
-    return self.get_source_expressions()[0].as_mql(compiler, connection, as_path=False)
+    return self.get_source_expressions()[0].as_mql(compiler, connection)
 
 
 def concat_pair(self, compiler, connection):
     # null on either side results in null for expression, wrap with coalesce.
     coalesced = self.coalesce()
-    return super(ConcatPair, coalesced).as_mql_expr(compiler, connection)
+    return super(ConcatPair, coalesced).as_mql(compiler, connection)
 
 
 def cot(self, compiler, connection):
-    lhs_mql = process_lhs(self, compiler, connection, as_path=False)
+    lhs_mql = process_lhs(self, compiler, connection)
     return {"$divide": [1, {"$tan": lhs_mql}]}
 
 
-def extract(self, compiler, connection, as_path=False):
-    lhs_mql = process_lhs(self, compiler, connection, as_path=as_path)
+def extract(self, compiler, connection):
+    lhs_mql = process_lhs(self, compiler, connection)
     operator = EXTRACT_OPERATORS.get(self.lookup_name)
     if operator is None:
         raise NotSupportedError(f"{self.__class__.__name__} is not supported.")
@@ -105,22 +105,8 @@ def extract(self, compiler, connection, as_path=False):
     return {f"${operator}": lhs_mql}
 
 
-def func(self, compiler, connection, as_path=False):
-    lhs_mql = process_lhs(self, compiler, connection, as_path=False)
-    if self.function is None:
-        raise NotSupportedError(f"{self} may need an as_mql() method.")
-    operator = MONGO_OPERATORS.get(self.__class__, self.function.lower())
-    if as_path:
-        return {"$expr": {f"${operator}": lhs_mql}}
-    return {f"${operator}": lhs_mql}
-
-
-def func_path(self, compiler, connection):  # noqa: ARG001
-    raise NotSupportedError(f"{self} may need an as_mql_path() method.")
-
-
-def func_expr(self, compiler, connection):
-    lhs_mql = process_lhs(self, compiler, connection, as_path=False)
+def func(self, compiler, connection):
+    lhs_mql = process_lhs(self, compiler, connection)
     if self.function is None:
         raise NotSupportedError(f"{self} may need an as_mql() method.")
     operator = MONGO_OPERATORS.get(self.__class__, self.function.lower())
@@ -291,8 +277,8 @@ def register_functions():
     ConcatPair.as_mql_expr = concat_pair
     Cot.as_mql_expr = cot
     Extract.as_mql_expr = extract
-    Func.as_mql_path = func_path
-    Func.as_mql_expr = func_expr
+    Func.as_mql_expr = func
+    Func.can_use_path = False
     JSONArray.as_mql_expr = process_lhs
     Left.as_mql_expr = left
     Length.as_mql_expr = length
@@ -312,4 +298,3 @@ def register_functions():
     TruncDate.as_mql_expr = trunc_date
     TruncTime.as_mql_expr = trunc_time
     Upper.as_mql_expr = preserve_null("toUpper")
-    Func.can_use_path = False

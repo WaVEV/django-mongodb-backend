@@ -12,16 +12,16 @@ from django.db.models.lookups import (
 from .query_utils import is_constant_value, process_lhs, process_rhs
 
 
-def builtin_lookup_path(self, compiler, connection):
-    lhs_mql = process_lhs(self, compiler, connection, as_path=True)
-    value = process_rhs(self, compiler, connection, as_path=True)
-    return connection.mongo_match_operators[self.lookup_name](lhs_mql, value)
-
-
 def builtin_lookup_expr(self, compiler, connection):
     value = process_rhs(self, compiler, connection, as_path=False)
     lhs_mql = process_lhs(self, compiler, connection, as_path=False)
     return connection.mongo_expr_operators[self.lookup_name](lhs_mql, value)
+
+
+def builtin_lookup_path(self, compiler, connection):
+    lhs_mql = process_lhs(self, compiler, connection, as_path=True)
+    value = process_rhs(self, compiler, connection, as_path=True)
+    return connection.mongo_match_operators[self.lookup_name](lhs_mql, value)
 
 
 _field_resolve_expression_parameter = FieldGetDbPrepValueIterableMixin.resolve_expression_parameter
@@ -85,18 +85,18 @@ def get_subquery_wrapping_pipeline(self, compiler, connection, field_name, expr)
     ]
 
 
-def is_null_path(self, compiler, connection):
-    if not isinstance(self.rhs, bool):
-        raise ValueError("The QuerySet value for an isnull lookup must be True or False.")
-    lhs_mql = process_lhs(self, compiler, connection, as_path=True)
-    return connection.mongo_match_operators["isnull"](lhs_mql, self.rhs)
-
-
 def is_null_expr(self, compiler, connection):
     if not isinstance(self.rhs, bool):
         raise ValueError("The QuerySet value for an isnull lookup must be True or False.")
     lhs_mql = process_lhs(self, compiler, connection, as_path=False)
     return connection.mongo_expr_operators["isnull"](lhs_mql, self.rhs)
+
+
+def is_null_path(self, compiler, connection):
+    if not isinstance(self.rhs, bool):
+        raise ValueError("The QuerySet value for an isnull lookup must be True or False.")
+    lhs_mql = process_lhs(self, compiler, connection, as_path=True)
+    return connection.mongo_match_operators["isnull"](lhs_mql, self.rhs)
 
 
 # from https://www.pcre.org/current/doc/html/pcre2pattern.html#SEC4
@@ -146,9 +146,8 @@ def can_use_path(self):
 
 
 def register_lookups():
-    Lookup.can_use_path = can_use_path
-    BuiltinLookup.as_mql_path = builtin_lookup_path
     BuiltinLookup.as_mql_expr = builtin_lookup_expr
+    BuiltinLookup.as_mql_path = builtin_lookup_path
     FieldGetDbPrepValueIterableMixin.resolve_expression_parameter = (
         field_resolve_expression_parameter
     )
@@ -157,6 +156,7 @@ def register_lookups():
     In.get_subquery_wrapping_pipeline = get_subquery_wrapping_pipeline
     IsNull.as_mql_path = is_null_path
     IsNull.as_mql_expr = is_null_expr
+    Lookup.can_use_path = can_use_path
     PatternLookup.prep_lookup_value_mongo = pattern_lookup_prep_lookup_value
     # Patching the main method, it is not supported yet.
     UUIDTextMixin.as_mql = uuid_text_mixin
