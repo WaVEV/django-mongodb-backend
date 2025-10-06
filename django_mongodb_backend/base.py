@@ -161,8 +161,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
                 raise EmptyResultSet
         return {"$and": conditions}
 
-    # match, path, find? don't know which name use.
-    mongo_match_operators = {
+    mongo_operators = {
         "exact": lambda a, b: {a: b},
         "gt": lambda a, b: {a: {"$gt": b}},
         "gte": lambda a, b: {a: {"$gte": b}},

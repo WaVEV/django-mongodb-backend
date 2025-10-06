@@ -21,7 +21,7 @@ def builtin_lookup_expr(self, compiler, connection):
 def builtin_lookup_path(self, compiler, connection):
     lhs_mql = process_lhs(self, compiler, connection, as_path=True)
     value = process_rhs(self, compiler, connection, as_path=True)
-    return connection.mongo_match_operators[self.lookup_name](lhs_mql, value)
+    return connection.mongo_operators[self.lookup_name](lhs_mql, value)
 
 
 _field_resolve_expression_parameter = FieldGetDbPrepValueIterableMixin.resolve_expression_parameter
@@ -96,7 +96,7 @@ def is_null_path(self, compiler, connection):
     if not isinstance(self.rhs, bool):
         raise ValueError("The QuerySet value for an isnull lookup must be True or False.")
     lhs_mql = process_lhs(self, compiler, connection, as_path=True)
-    return connection.mongo_match_operators["isnull"](lhs_mql, self.rhs)
+    return connection.mongo_operators["isnull"](lhs_mql, self.rhs)
 
 
 # from https://www.pcre.org/current/doc/html/pcre2pattern.html#SEC4
