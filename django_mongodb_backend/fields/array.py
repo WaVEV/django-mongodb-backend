@@ -233,15 +233,12 @@ class ArrayField(CheckFieldDefaultMixin, Field):
 class Array(Func):
     def as_mql_expr(self, compiler, connection):
         return [
-            expr.as_mql(compiler, connection, as_path=False)
+            expr.as_mql(compiler, connection, as_expr=True)
             for expr in self.get_source_expressions()
         ]
 
     def as_mql_path(self, compiler, connection):
-        return [
-            expr.as_mql(compiler, connection, as_path=True)
-            for expr in self.get_source_expressions()
-        ]
+        return [expr.as_mql(compiler, connection) for expr in self.get_source_expressions()]
 
     @cached_property
     def can_use_path(self):
@@ -270,8 +267,8 @@ class ArrayContains(ArrayRHSMixin, FieldGetDbPrepValueMixin, Lookup):
     lookup_name = "contains"
 
     def as_mql_expr(self, compiler, connection):
-        lhs_mql = process_lhs(self, compiler, connection, as_path=False)
-        value = process_rhs(self, compiler, connection, as_path=False)
+        lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
+        value = process_rhs(self, compiler, connection, as_expr=True)
         return {
             "$and": [
                 {"$ne": [lhs_mql, None]},
@@ -281,8 +278,8 @@ class ArrayContains(ArrayRHSMixin, FieldGetDbPrepValueMixin, Lookup):
         }
 
     def as_mql_path(self, compiler, connection):
-        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
-        value = process_rhs(self, compiler, connection, as_path=True)
+        lhs_mql = process_lhs(self, compiler, connection)
+        value = process_rhs(self, compiler, connection)
         return {lhs_mql: {"$all": value}}
 
 
@@ -291,8 +288,8 @@ class ArrayContainedBy(ArrayRHSMixin, FieldGetDbPrepValueMixin, Lookup):
     lookup_name = "contained_by"
 
     def as_mql_expr(self, compiler, connection):
-        lhs_mql = process_lhs(self, compiler, connection, as_path=False)
-        value = process_rhs(self, compiler, connection, as_path=False)
+        lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
+        value = process_rhs(self, compiler, connection, as_expr=True)
         return {
             "$and": [
                 {"$ne": [lhs_mql, None]},
@@ -316,7 +313,7 @@ class ArrayOverlap(ArrayRHSMixin, FieldGetDbPrepValueMixin, Lookup):
             {
                 "$facet": {
                     "group": [
-                        {"$project": {"tmp_name": expr.as_mql(compiler, connection)}},
+                        {"$project": {"tmp_name": expr.as_mql(compiler, connection, as_expr=True)}},
                         {
                             "$unwind": "$tmp_name",
                         },
@@ -347,8 +344,8 @@ class ArrayOverlap(ArrayRHSMixin, FieldGetDbPrepValueMixin, Lookup):
         ]
 
     def as_mql_expr(self, compiler, connection):
-        lhs_mql = process_lhs(self, compiler, connection, as_path=False)
-        value = process_rhs(self, compiler, connection, as_path=False)
+        lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
+        value = process_rhs(self, compiler, connection, as_expr=True)
         return {
             "$and": [
                 {"$ne": [lhs_mql, None]},
@@ -357,8 +354,8 @@ class ArrayOverlap(ArrayRHSMixin, FieldGetDbPrepValueMixin, Lookup):
         }
 
     def as_mql_path(self, compiler, connection):
-        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
-        value = process_rhs(self, compiler, connection, as_path=True)
+        lhs_mql = process_lhs(self, compiler, connection)
+        value = process_rhs(self, compiler, connection)
         return {lhs_mql: {"$in": value}}
 
 
@@ -367,8 +364,8 @@ class ArrayLenTransform(Transform):
     lookup_name = "len"
     output_field = IntegerField()
 
-    def as_mql_expr(self, compiler, connection, as_path=False):
-        lhs_mql = process_lhs(self, compiler, connection, as_path=False)
+    def as_mql_expr(self, compiler, connection):
+        lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
         return {"$cond": {"if": {"$isArray": lhs_mql}, "then": {"$size": lhs_mql}, "else": None}}
 
 
@@ -403,11 +400,11 @@ class IndexTransform(Transform):
         return self.lhs.is_simple_column
 
     def as_mql_expr(self, compiler, connection):
-        lhs_mql = process_lhs(self, compiler, connection, as_path=False)
+        lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
         return {"$arrayElemAt": [lhs_mql, self.index]}
 
     def as_mql_path(self, compiler, connection):
-        lhs_mql = process_lhs(self, compiler, connection, as_path=True)
+        lhs_mql = process_lhs(self, compiler, connection)
         return f"{lhs_mql}.{self.index}"
 
     @property
@@ -431,7 +428,7 @@ class SliceTransform(Transform):
         self.end = end
 
     def as_mql_expr(self, compiler, connection):
-        lhs_mql = process_lhs(self, compiler, connection)
+        lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
         return {"$slice": [lhs_mql, self.start, self.end]}
 
 

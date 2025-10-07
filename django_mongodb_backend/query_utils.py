@@ -10,7 +10,7 @@ def is_direct_value(node):
     return not hasattr(node, "as_sql")
 
 
-def process_lhs(node, compiler, connection, as_path=False):
+def process_lhs(node, compiler, connection, as_expr=False):
     if not hasattr(node, "lhs"):
         # node is a Func or Expression, possibly with multiple source expressions.
         result = []
@@ -18,19 +18,19 @@ def process_lhs(node, compiler, connection, as_path=False):
             if expr is None:
                 continue
             try:
-                result.append(expr.as_mql(compiler, connection, as_path=as_path))
+                result.append(expr.as_mql(compiler, connection, as_expr=as_expr))
             except FullResultSet:
-                result.append(Value(True).as_mql(compiler, connection, as_path=as_path))
+                result.append(Value(True).as_mql(compiler, connection, as_expr=as_expr))
         if isinstance(node, Aggregate):
             return result[0]
         return result
     # node is a Transform with just one source expression, aliased as "lhs".
     if is_direct_value(node.lhs):
         return node
-    return node.lhs.as_mql(compiler, connection, as_path=as_path)
+    return node.lhs.as_mql(compiler, connection, as_expr=as_expr)
 
 
-def process_rhs(node, compiler, connection, as_path=False):
+def process_rhs(node, compiler, connection, as_expr=False):
     rhs = node.rhs
     if hasattr(rhs, "as_mql"):
         if getattr(rhs, "subquery", False) and hasattr(node, "get_subquery_wrapping_pipeline"):
@@ -38,10 +38,10 @@ def process_rhs(node, compiler, connection, as_path=False):
                 compiler,
                 connection,
                 get_wrapping_pipeline=node.get_subquery_wrapping_pipeline,
-                as_path=as_path,
+                as_expr=as_expr,
             )
         else:
-            value = rhs.as_mql(compiler, connection, as_path=as_path)
+            value = rhs.as_mql(compiler, connection, as_expr=as_expr)
     else:
         _, value = node.process_rhs(compiler, connection)
         lookup_name = node.lookup_name

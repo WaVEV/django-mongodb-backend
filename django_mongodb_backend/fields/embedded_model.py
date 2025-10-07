@@ -210,14 +210,14 @@ class EmbeddedModelTransform(Transform):
 
     def as_mql_expr(self, compiler, connection):
         columns, parent_field = self._get_target_path()
-        mql = parent_field.as_mql(compiler, connection)
+        mql = parent_field.as_mql(compiler, connection, as_expr=True)
         for key in columns:
             mql = {"$getField": {"input": mql, "field": key}}
         return mql
 
     def as_mql_path(self, compiler, connection):
         columns, parent_field = self._get_target_path()
-        mql = parent_field.as_mql(compiler, connection, as_path=True)
+        mql = parent_field.as_mql(compiler, connection)
         mql_path = ".".join(columns)
         return f"{mql}.{mql_path}"
 

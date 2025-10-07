@@ -98,21 +98,16 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     }
     _connection_pools = {}
 
-    def _isnull_operator(a, b):
+    def _isnull_operator_expr(field, null):
         is_null = {
             "$or": [
                 # The path does not exist (i.e. is "missing")
-                {"$eq": [{"$type": a}, "missing"]},
+                {"$eq": [{"$type": field}, "missing"]},
                 # or the value is None.
-                {"$eq": [a, None]},
+                {"$eq": [field, None]},
             ]
         }
-        return is_null if b else {"$not": is_null}
-
-    def _isnull_operator_match(a, b):
-        if b:
-            return {"$or": [{a: {"$exists": False}}, {a: None}]}
-        return {"$and": [{a: {"$exists": True}}, {a: {"$ne": None}}]}
+        return is_null if null else {"$not": is_null}
 
     mongo_expr_operators = {
         "exact": lambda a, b: {"$eq": [a, b]},
@@ -120,16 +115,18 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         "gte": lambda a, b: {"$gte": [a, b]},
         # MongoDB considers null less than zero. Exclude null values to match
         # SQL behavior.
-        "lt": lambda a, b: {"$and": [{"$lt": [a, b]}, DatabaseWrapper._isnull_operator(a, False)]},
+        "lt": lambda a, b: {
+            "$and": [{"$lt": [a, b]}, DatabaseWrapper._isnull_operator_expr(a, False)]
+        },
         "lte": lambda a, b: {
-            "$and": [{"$lte": [a, b]}, DatabaseWrapper._isnull_operator(a, False)]
+            "$and": [{"$lte": [a, b]}, DatabaseWrapper._isnull_operator_expr(a, False)]
         },
         "in": lambda a, b: {"$in": (a, b)},
-        "isnull": _isnull_operator,
+        "isnull": _isnull_operator_expr,
         "range": lambda a, b: {
             "$and": [
-                {"$or": [DatabaseWrapper._isnull_operator(b[0], True), {"$gte": [a, b[0]]}]},
-                {"$or": [DatabaseWrapper._isnull_operator(b[1], True), {"$lte": [a, b[1]]}]},
+                {"$or": [DatabaseWrapper._isnull_operator_expr(b[0], True), {"$gte": [a, b[0]]}]},
+                {"$or": [DatabaseWrapper._isnull_operator_expr(b[1], True), {"$lte": [a, b[1]]}]},
             ]
         },
         "iexact": lambda a, b: regex_expr(a, ("^", b, {"$literal": "$"}), insensitive=True),
@@ -160,6 +157,11 @@ class DatabaseWrapper(BaseDatabaseWrapper):
             if start > end:
                 raise EmptyResultSet
         return {"$and": conditions}
+
+    def _isnull_operator_match(field, null):
+        if null:
+            return {"$or": [{field: {"$exists": False}}, {field: None}]}
+        return {"$and": [{field: {"$exists": True}}, {field: {"$ne": None}}]}
 
     mongo_operators = {
         "exact": lambda a, b: {a: b},

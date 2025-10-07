@@ -13,14 +13,14 @@ from .query_utils import is_constant_value, process_lhs, process_rhs
 
 
 def builtin_lookup_expr(self, compiler, connection):
-    value = process_rhs(self, compiler, connection, as_path=False)
-    lhs_mql = process_lhs(self, compiler, connection, as_path=False)
+    value = process_rhs(self, compiler, connection, as_expr=True)
+    lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
     return connection.mongo_expr_operators[self.lookup_name](lhs_mql, value)
 
 
 def builtin_lookup_path(self, compiler, connection):
-    lhs_mql = process_lhs(self, compiler, connection, as_path=True)
-    value = process_rhs(self, compiler, connection, as_path=True)
+    lhs_mql = process_lhs(self, compiler, connection)
+    value = process_rhs(self, compiler, connection)
     return connection.mongo_operators[self.lookup_name](lhs_mql, value)
 
 
@@ -61,7 +61,9 @@ def get_subquery_wrapping_pipeline(self, compiler, connection, field_name, expr)
                     {
                         "$group": {
                             "_id": None,
-                            "tmp_name": {"$addToSet": expr.as_mql(compiler, connection)},
+                            "tmp_name": {
+                                "$addToSet": expr.as_mql(compiler, connection, as_expr=True)
+                            },
                         }
                     }
                 ]
@@ -88,14 +90,14 @@ def get_subquery_wrapping_pipeline(self, compiler, connection, field_name, expr)
 def is_null_expr(self, compiler, connection):
     if not isinstance(self.rhs, bool):
         raise ValueError("The QuerySet value for an isnull lookup must be True or False.")
-    lhs_mql = process_lhs(self, compiler, connection, as_path=False)
+    lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
     return connection.mongo_expr_operators["isnull"](lhs_mql, self.rhs)
 
 
 def is_null_path(self, compiler, connection):
     if not isinstance(self.rhs, bool):
         raise ValueError("The QuerySet value for an isnull lookup must be True or False.")
-    lhs_mql = process_lhs(self, compiler, connection, as_path=True)
+    lhs_mql = process_lhs(self, compiler, connection)
     return connection.mongo_operators["isnull"](lhs_mql, self.rhs)
 
 

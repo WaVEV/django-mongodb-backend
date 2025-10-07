@@ -1,4 +1,5 @@
 from datetime import datetime
+from functools import partialmethod
 
 from django.conf import settings
 from django.db import NotSupportedError
@@ -67,7 +68,7 @@ EXTRACT_OPERATORS = {
 
 def cast(self, compiler, connection):
     output_type = connection.data_types[self.output_field.get_internal_type()]
-    lhs_mql = process_lhs(self, compiler, connection)[0]
+    lhs_mql = process_lhs(self, compiler, connection, as_expr=True)[0]
     if max_length := self.output_field.max_length:
         lhs_mql = {"$substrCP": [lhs_mql, 0, max_length]}
     # Skip the conversion for "object" as it doesn't need to be transformed for
@@ -81,7 +82,7 @@ def cast(self, compiler, connection):
 
 
 def concat(self, compiler, connection):
-    return self.get_source_expressions()[0].as_mql(compiler, connection)
+    return self.get_source_expressions()[0].as_mql(compiler, connection, as_expr=True)
 
 
 def concat_pair(self, compiler, connection):
@@ -91,12 +92,12 @@ def concat_pair(self, compiler, connection):
 
 
 def cot(self, compiler, connection):
-    lhs_mql = process_lhs(self, compiler, connection)
+    lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
     return {"$divide": [1, {"$tan": lhs_mql}]}
 
 
 def extract(self, compiler, connection):
-    lhs_mql = process_lhs(self, compiler, connection)
+    lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
     operator = EXTRACT_OPERATORS.get(self.lookup_name)
     if operator is None:
         raise NotSupportedError(f"{self.__class__.__name__} is not supported.")
@@ -106,7 +107,7 @@ def extract(self, compiler, connection):
 
 
 def func(self, compiler, connection):
-    lhs_mql = process_lhs(self, compiler, connection)
+    lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
     if self.function is None:
         raise NotSupportedError(f"{self} may need an as_mql() method.")
     operator = MONGO_OPERATORS.get(self.__class__, self.function.lower())
@@ -114,12 +115,12 @@ def func(self, compiler, connection):
 
 
 def left(self, compiler, connection):
-    return self.get_substr().as_mql(compiler, connection)
+    return self.get_substr().as_mql(compiler, connection, as_expr=True)
 
 
 def length(self, compiler, connection):
     # Check for null first since $strLenCP only accepts strings.
-    lhs_mql = process_lhs(self, compiler, connection)
+    lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
     return {"$cond": {"if": {"$eq": [lhs_mql, None]}, "then": None, "else": {"$strLenCP": lhs_mql}}}
 
 
@@ -136,7 +137,9 @@ def now(self, compiler, connection):  # noqa: ARG001
 
 def null_if(self, compiler, connection):
     """Return None if expr1==expr2 else expr1."""
-    expr1, expr2 = (expr.as_mql(compiler, connection) for expr in self.get_source_expressions())
+    expr1, expr2 = (
+        expr.as_mql(compiler, connection, as_expr=True) for expr in self.get_source_expressions()
+    )
     return {"$cond": {"if": {"$eq": [expr1, expr2]}, "then": None, "else": expr1}}
 
 
@@ -144,7 +147,7 @@ def preserve_null(operator):
     # If the argument is null, the function should return null, not
     # $toLower/Upper's behavior of returning an empty string.
     def wrapped(self, compiler, connection):
-        lhs_mql = process_lhs(self, compiler, connection)
+        lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
         return {
             "$cond": {
                 "if": connection.mongo_expr_operators["isnull"](lhs_mql, True),
@@ -157,24 +160,29 @@ def preserve_null(operator):
 
 
 def replace(self, compiler, connection):
-    expression, text, replacement = process_lhs(self, compiler, connection)
+    expression, text, replacement = process_lhs(self, compiler, connection, as_expr=True)
     return {"$replaceAll": {"input": expression, "find": text, "replacement": replacement}}
 
 
 def round_(self, compiler, connection):
     # Round needs its own function because it's a special case that inherits
     # from Transform but has two arguments.
-    return {"$round": [expr.as_mql(compiler, connection) for expr in self.get_source_expressions()]}
+    return {
+        "$round": [
+            expr.as_mql(compiler, connection, as_expr=True)
+            for expr in self.get_source_expressions()
+        ]
+    }
 
 
 def str_index(self, compiler, connection):
-    lhs = process_lhs(self, compiler, connection)
+    lhs = process_lhs(self, compiler, connection, as_expr=True)
     # StrIndex should be 0-indexed (not found) but it's -1-indexed on MongoDB.
     return {"$add": [{"$indexOfCP": lhs}, 1]}
 
 
 def substr(self, compiler, connection):
-    lhs = process_lhs(self, compiler, connection)
+    lhs = process_lhs(self, compiler, connection, as_expr=True)
     # The starting index is zero-indexed on MongoDB rather than one-indexed.
     lhs[1] = {"$add": [lhs[1], -1]}
     # If no limit is specified, use the length of the string since $substrCP
@@ -186,14 +194,14 @@ def substr(self, compiler, connection):
 
 def trim(operator):
     def wrapped(self, compiler, connection):
-        lhs = process_lhs(self, compiler, connection)
+        lhs = process_lhs(self, compiler, connection, as_expr=True)
         return {f"${operator}": {"input": lhs}}
 
     return wrapped
 
 
 def trunc(self, compiler, connection):
-    lhs_mql = process_lhs(self, compiler, connection)
+    lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
     lhs_mql = {"date": lhs_mql, "unit": self.kind, "startOfWeek": "mon"}
     if timezone := self.get_tzname():
         lhs_mql["timezone"] = timezone
@@ -232,7 +240,7 @@ def trunc_convert_value(self, value, expression, connection):
 
 def trunc_date(self, compiler, connection):
     # Cast to date rather than truncate to date.
-    lhs_mql = process_lhs(self, compiler, connection)
+    lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
     tzname = self.get_tzname()
     if tzname and tzname != "UTC":
         raise NotSupportedError(f"TruncDate with tzinfo ({tzname}) isn't supported on MongoDB.")
@@ -255,7 +263,7 @@ def trunc_time(self, compiler, connection):
     tzname = self.get_tzname()
     if tzname and tzname != "UTC":
         raise NotSupportedError(f"TruncTime with tzinfo ({tzname}) isn't supported on MongoDB.")
-    lhs_mql = process_lhs(self, compiler, connection)
+    lhs_mql = process_lhs(self, compiler, connection, as_expr=True)
     return {
         "$dateFromString": {
             "dateString": {
@@ -279,7 +287,7 @@ def register_functions():
     Extract.as_mql_expr = extract
     Func.as_mql_expr = func
     Func.can_use_path = False
-    JSONArray.as_mql_expr = process_lhs
+    JSONArray.as_mql_expr = partialmethod(process_lhs, as_expr=True)
     Left.as_mql_expr = left
     Length.as_mql_expr = length
     Log.as_mql_expr = log

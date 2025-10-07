@@ -154,7 +154,9 @@ def join(self, compiler, connection, pushed_filter_expression=None):
                     # lhs_fields.
                     if hand_side_value.alias != self.table_alias:
                         pos = len(lhs_fields)
-                        lhs_fields.append(hand_side_value.as_mql(compiler, connection))
+                        lhs_fields.append(
+                            hand_side_value.as_mql(compiler, connection, as_expr=True)
+                        )
                     else:
                         pos = None
                     columns.append((hand_side_value, pos))
@@ -183,17 +185,17 @@ def join(self, compiler, connection, pushed_filter_expression=None):
         lhs, rhs = connection.ops.prepare_join_on_clause(
             self.parent_alias, lhs, compiler.collection_name, rhs
         )
-        lhs_fields.append(lhs.as_mql(compiler, connection))
+        lhs_fields.append(lhs.as_mql(compiler, connection, as_expr=True))
         # In the lookup stage, the reference to this column doesn't include the
         # collection name.
-        rhs_fields.append(rhs.as_mql(compiler, connection))
+        rhs_fields.append(rhs.as_mql(compiler, connection, as_expr=True))
     # Handle any join conditions besides matching field pairs.
     extra = self.join_field.get_extra_restriction(self.table_alias, self.parent_alias)
     extra_conditions = []
     if extra:
         replacements = _get_reroot_replacements(extra)
         extra_conditions.append(
-            extra.replace_expressions(replacements).as_mql(compiler, connection, as_path=True)
+            extra.replace_expressions(replacements).as_mql(compiler, connection)
         )
     # pushed_filter_expression is a Where expression from the outer WHERE
     # clause that involves fields from the joined (right-hand) table and
@@ -207,7 +209,7 @@ def join(self, compiler, connection, pushed_filter_expression=None):
         rerooted_replacement = _get_reroot_replacements(pushed_filter_expression)
         extra_conditions.append(
             pushed_filter_expression.replace_expressions(rerooted_replacement).as_mql(
-                compiler, connection, as_path=True
+                compiler, connection
             )
         )
 
@@ -272,7 +274,7 @@ def join(self, compiler, connection, pushed_filter_expression=None):
     return lookup_pipeline
 
 
-def where_node(self, compiler, connection, as_path=False):
+def where_node(self, compiler, connection, as_expr=False):
     if self.connector == AND:
         full_needed, empty_needed = len(self.children), 1
     else:
@@ -296,7 +298,7 @@ def where_node(self, compiler, connection, as_path=False):
             rhs_sum = Mod(rhs_sum, 2)
         rhs = Exact(1, rhs_sum)
         return self.__class__([lhs, rhs], AND, self.negated).as_mql(
-            compiler, connection, as_path=as_path
+            compiler, connection, as_expr=as_expr
         )
     else:
         operator = "$or"
@@ -304,7 +306,7 @@ def where_node(self, compiler, connection, as_path=False):
     children_mql = []
     for child in self.children:
         try:
-            mql = child.as_mql(compiler, connection, as_path=as_path)
+            mql = child.as_mql(compiler, connection, as_expr=as_expr)
         except EmptyResultSet:
             empty_needed -= 1
         except FullResultSet:
@@ -331,12 +333,12 @@ def where_node(self, compiler, connection, as_path=False):
         raise FullResultSet
 
     if self.negated and mql:
-        mql = {"$nor": [mql]} if as_path else {"$not": [mql]}
+        mql = {"$not": [mql]} if as_expr else {"$nor": [mql]}
 
     return mql
 
 
-def nothing_node(self, compiler, connection, as_path=None):  # noqa: ARG001
+def nothing_node(self, compiler, connection, as_expr=False):  # noqa: ARG001
     return self.as_sql(compiler, connection)
 
 
