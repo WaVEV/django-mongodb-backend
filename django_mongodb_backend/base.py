@@ -98,8 +98,8 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     }
     _connection_pools = {}
 
-    def _isnull_operator_expr(field, null):
-        is_null = {
+    def _isnull_operator_expr(field, is_null):
+        is_null_expr = {
             "$or": [
                 # The path does not exist (i.e. is "missing")
                 {"$eq": [{"$type": field}, "missing"]},
@@ -107,7 +107,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
                 {"$eq": [field, None]},
             ]
         }
-        return is_null if null else {"$not": is_null}
+        return is_null_expr if is_null else {"$not": is_null_expr}
 
     mongo_expr_operators = {
         "exact": lambda a, b: {"$eq": [a, b]},
@@ -158,8 +158,8 @@ class DatabaseWrapper(BaseDatabaseWrapper):
                 raise EmptyResultSet
         return {"$and": conditions}
 
-    def _isnull_operator_match(field, null):
-        if null:
+    def _isnull_operator_match(field, is_null):
+        if is_null:
             return {"$or": [{field: {"$exists": False}}, {field: None}]}
         return {"$and": [{field: {"$exists": True}}, {field: {"$ne": None}}]}
 
