@@ -146,12 +146,20 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
             for x in range(6)
         ]
 
+    def test_exact(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(Holder.objects.filter(data__integer=3), [self.objs[3]])
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "model_fields__holder",
+            [{"$match": {"data.integer_": 3}}],
+        )
+
     def test_exact_expr(self):
         with self.assertNumQueries(1) as ctx:
             self.assertCountEqual(Holder.objects.filter(data__integer=Value(4) - 1), [self.objs[3]])
-        query = ctx.captured_queries[0]["sql"]
         self.assertAggregateQuery(
-            query,
+            ctx.captured_queries[0]["sql"],
             "model_fields__holder",
             [
                 {
@@ -167,20 +175,36 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
             ],
         )
 
-    def test_exact_path(self):
+    def test_lt(self):
         with self.assertNumQueries(1) as ctx:
-            self.assertCountEqual(Holder.objects.filter(data__integer=3), [self.objs[3]])
-        query = ctx.captured_queries[0]["sql"]
-        self.assertAggregateQuery(query, "model_fields__holder", [{"$match": {"data.integer_": 3}}])
+            self.assertCountEqual(Holder.objects.filter(data__integer__lt=3), self.objs[:3])
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "model_fields__holder",
+            [
+                {
+                    "$match": {
+                        "$and": [
+                            {"data.integer_": {"$lt": 3}},
+                            {
+                                "$and": [
+                                    {"data.integer_": {"$exists": True}},
+                                    {"data.integer_": {"$ne": None}},
+                                ]
+                            },
+                        ]
+                    }
+                }
+            ],
+        )
 
     def test_lt_expr(self):
         with self.assertNumQueries(1) as ctx:
             self.assertCountEqual(
                 Holder.objects.filter(data__integer__lt=Value(4) - 1), self.objs[:3]
             )
-        query = ctx.captured_queries[0]["sql"]
         self.assertAggregateQuery(
-            query,
+            ctx.captured_queries[0]["sql"],
             "model_fields__holder",
             [
                 {
@@ -230,18 +254,17 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
             ],
         )
 
-    def test_lt_path(self):
+    def test_lte(self):
         with self.assertNumQueries(1) as ctx:
-            self.assertCountEqual(Holder.objects.filter(data__integer__lt=3), self.objs[:3])
-        query = ctx.captured_queries[0]["sql"]
+            self.assertCountEqual(Holder.objects.filter(data__integer__lte=3), self.objs[:4])
         self.assertAggregateQuery(
-            query,
+            ctx.captured_queries[0]["sql"],
             "model_fields__holder",
             [
                 {
                     "$match": {
                         "$and": [
-                            {"data.integer_": {"$lt": 3}},
+                            {"data.integer_": {"$lte": 3}},
                             {
                                 "$and": [
                                     {"data.integer_": {"$exists": True}},
@@ -259,9 +282,8 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
             self.assertCountEqual(
                 Holder.objects.filter(data__integer__lte=Value(4) - 1), self.objs[:4]
             )
-        query = ctx.captured_queries[0]["sql"]
         self.assertAggregateQuery(
-            query,
+            ctx.captured_queries[0]["sql"],
             "model_fields__holder",
             [
                 {
@@ -311,29 +333,13 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
             ],
         )
 
-    def test_lte_path(self):
+    def test_gt(self):
         with self.assertNumQueries(1) as ctx:
-            self.assertCountEqual(Holder.objects.filter(data__integer__lte=3), self.objs[:4])
-        query = ctx.captured_queries[0]["sql"]
-
+            self.assertCountEqual(Holder.objects.filter(data__integer__gt=3), self.objs[4:])
         self.assertAggregateQuery(
-            query,
+            ctx.captured_queries[0]["sql"],
             "model_fields__holder",
-            [
-                {
-                    "$match": {
-                        "$and": [
-                            {"data.integer_": {"$lte": 3}},
-                            {
-                                "$and": [
-                                    {"data.integer_": {"$exists": True}},
-                                    {"data.integer_": {"$ne": None}},
-                                ]
-                            },
-                        ]
-                    }
-                }
-            ],
+            [{"$match": {"data.integer_": {"$gt": 3}}}],
         )
 
     def test_gt_expr(self):
@@ -341,9 +347,8 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
             self.assertCountEqual(
                 Holder.objects.filter(data__integer__gt=Value(4) - 1), self.objs[4:]
             )
-        query = ctx.captured_queries[0]["sql"]
         self.assertAggregateQuery(
-            query,
+            ctx.captured_queries[0]["sql"],
             "model_fields__holder",
             [
                 {
@@ -359,12 +364,13 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
             ],
         )
 
-    def test_gt_path(self):
+    def test_gte(self):
         with self.assertNumQueries(1) as ctx:
-            self.assertCountEqual(Holder.objects.filter(data__integer__gt=3), self.objs[4:])
-        query = ctx.captured_queries[0]["sql"]
+            self.assertCountEqual(Holder.objects.filter(data__integer__gte=3), self.objs[3:])
         self.assertAggregateQuery(
-            query, "model_fields__holder", [{"$match": {"data.integer_": {"$gt": 3}}}]
+            ctx.captured_queries[0]["sql"],
+            "model_fields__holder",
+            [{"$match": {"data.integer_": {"$gte": 3}}}],
         )
 
     def test_gte_expr(self):
@@ -372,9 +378,8 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
             self.assertCountEqual(
                 Holder.objects.filter(data__integer__gte=Value(4) - 1), self.objs[3:]
             )
-        query = ctx.captured_queries[0]["sql"]
         self.assertAggregateQuery(
-            query,
+            ctx.captured_queries[0]["sql"],
             "model_fields__holder",
             [
                 {
@@ -390,12 +395,21 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
             ],
         )
 
-    def test_gte_path(self):
+    def test_range(self):
         with self.assertNumQueries(1) as ctx:
-            self.assertCountEqual(Holder.objects.filter(data__integer__gte=3), self.objs[3:])
-        query = ctx.captured_queries[0]["sql"]
+            self.assertCountEqual(
+                Holder.objects.filter(data__integer__range=(2, 4)), self.objs[2:5]
+            )
         self.assertAggregateQuery(
-            query, "model_fields__holder", [{"$match": {"data.integer_": {"$gte": 3}}}]
+            ctx.captured_queries[0]["sql"],
+            "model_fields__holder",
+            [
+                {
+                    "$match": {
+                        "$and": [{"data.integer_": {"$gte": 2}}, {"data.integer_": {"$lte": 4}}]
+                    }
+                }
+            ],
         )
 
     def test_range_expr(self):
@@ -403,9 +417,8 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
             self.assertCountEqual(
                 Holder.objects.filter(data__integer__range=(2, Value(5) - 1)), self.objs[2:5]
             )
-        query = ctx.captured_queries[0]["sql"]
         self.assertAggregateQuery(
-            query,
+            ctx.captured_queries[0]["sql"],
             "model_fields__holder",
             [
                 {
@@ -478,24 +491,6 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
                                 },
                             ]
                         }
-                    }
-                }
-            ],
-        )
-
-    def test_range_path(self):
-        with self.assertNumQueries(1) as ctx:
-            self.assertCountEqual(
-                Holder.objects.filter(data__integer__range=(2, 4)), self.objs[2:5]
-            )
-        query = ctx.captured_queries[0]["sql"]
-        self.assertAggregateQuery(
-            query,
-            "model_fields__holder",
-            [
-                {
-                    "$match": {
-                        "$and": [{"data.integer_": {"$gte": 2}}, {"data.integer_": {"$lte": 4}}]
                     }
                 }
             ],

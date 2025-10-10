@@ -179,14 +179,24 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
         cls.audit_2 = Audit.objects.create(section_number=2, reviewed=True)
         cls.audit_3 = Audit.objects.create(section_number=5, reviewed=False)
 
+    def test_exact(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertCountEqual(
+                Exhibit.objects.filter(sections__number=1), [self.egypt, self.wonders]
+            )
+        self.assertAggregateQuery(
+            ctx.captured_queries[0]["sql"],
+            "model_fields__exhibit",
+            [{"$match": {"sections.number": 1}}],
+        )
+
     def test_exact_expr(self):
         with self.assertNumQueries(1) as ctx:
             self.assertCountEqual(
                 Exhibit.objects.filter(sections__number=Value(2) - 1), [self.egypt, self.wonders]
             )
-        query = ctx.captured_queries[0]["sql"]
         self.assertAggregateQuery(
-            query,
+            ctx.captured_queries[0]["sql"],
             "model_fields__exhibit",
             [
                 {
@@ -220,14 +230,16 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
             ],
         )
 
-    def test_exact_path(self):
+    def test_array_index(self):
         with self.assertNumQueries(1) as ctx:
             self.assertCountEqual(
-                Exhibit.objects.filter(sections__number=1), [self.egypt, self.wonders]
+                Exhibit.objects.filter(sections__0__number=1),
+                [self.egypt, self.wonders],
             )
-        query = ctx.captured_queries[0]["sql"]
         self.assertAggregateQuery(
-            query, "model_fields__exhibit", [{"$match": {"sections.number": 1}}]
+            ctx.captured_queries[0]["sql"],
+            "model_fields__exhibit",
+            [{"$match": {"sections.0.number": 1}}],
         )
 
     def test_array_index_expr(self):
@@ -236,9 +248,8 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
                 Exhibit.objects.filter(sections__0__number=Value(2) - 1),
                 [self.egypt, self.wonders],
             )
-        query = ctx.captured_queries[0]["sql"]
         self.assertAggregateQuery(
-            query,
+            ctx.captured_queries[0]["sql"],
             "model_fields__exhibit",
             [
                 {
@@ -259,15 +270,18 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
             ],
         )
 
-    def test_array_index_path(self):
+    def test_nested_array_index(self):
         with self.assertNumQueries(1) as ctx:
             self.assertCountEqual(
-                Exhibit.objects.filter(sections__0__number=1),
-                [self.egypt, self.wonders],
+                Exhibit.objects.filter(
+                    main_section__artifacts__restorations__0__restored_by="Zacarias"
+                ),
+                [self.lost_empires],
             )
-        query = ctx.captured_queries[0]["sql"]
         self.assertAggregateQuery(
-            query, "model_fields__exhibit", [{"$match": {"sections.0.number": 1}}]
+            ctx.captured_queries[0]["sql"],
+            "model_fields__exhibit",
+            [{"$match": {"main_section.artifacts.restorations.0.restored_by": "Zacarias"}}],
         )
 
     def test_nested_array_index_expr(self):
@@ -280,9 +294,8 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
                 ),
                 [self.lost_empires],
             )
-        query = ctx.captured_queries[0]["sql"]
         self.assertAggregateQuery(
-            query,
+            ctx.captured_queries[0]["sql"],
             "model_fields__exhibit",
             [
                 {
@@ -329,21 +342,6 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
                     }
                 }
             ],
-        )
-
-    def test_nested_array_index_path(self):
-        with self.assertNumQueries(1) as ctx:
-            self.assertCountEqual(
-                Exhibit.objects.filter(
-                    main_section__artifacts__restorations__0__restored_by="Zacarias"
-                ),
-                [self.lost_empires],
-            )
-        query = ctx.captured_queries[0]["sql"]
-        self.assertAggregateQuery(
-            query,
-            "model_fields__exhibit",
-            [{"$match": {"main_section.artifacts.restorations.0.restored_by": "Zacarias"}}],
         )
 
     def test_array_slice(self):
@@ -474,7 +472,7 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
         with self.assertRaisesMessage(ValueError, msg):
             Exhibit.objects.filter(sections__artifacts__name="")
 
-    def test_foreign_field_exact_path(self):
+    def test_foreign_field_exact(self):
         """Querying from a foreign key to an EmbeddedModelArrayField."""
         with self.assertNumQueries(1) as ctx:
             qs = Tour.objects.filter(exhibit__sections__number=1)
