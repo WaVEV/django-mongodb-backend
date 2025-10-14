@@ -140,7 +140,7 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
                 data=Data(
                     integer=x,
                     decimal=f"{x}.5",
-                    nested_data=NestedData(decimal=f"{x}.5"),
+                    nested_data=NestedData(decimal=f"{x}.5", price=f"{x}.50"),
                 )
             )
             for x in range(6)
@@ -507,6 +507,11 @@ class QueryingTests(MongoTestCaseMixin, TestCase):
     def test_exact_decimal_nested(self):
         self.assertCountEqual(
             Holder.objects.filter(data__nested_data__decimal="3.5"), [self.objs[3]]
+        )
+
+    def test_query_price_column(self):
+        self.assertCountEqual(
+            Holder.objects.filter(data__nested_data__price="5.50"), [self.objs[5]]
         )
 
     def test_order_by_embedded_field(self):

@@ -135,6 +135,9 @@ class Data(EmbeddedModel):
 
 class NestedData(EmbeddedModel):
     decimal = models.DecimalField(max_digits=9, decimal_places="2", null=True, blank=True)
+    price = models.DecimalField(
+        max_digits=9, decimal_places="2", db_column="price$usd", null=True, blank=True
+    )
 
 
 class Address(EmbeddedModel):
