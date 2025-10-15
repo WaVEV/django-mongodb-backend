@@ -10,7 +10,7 @@ from django.utils.functional import cached_property
 from django_mongodb_backend import forms
 from django_mongodb_backend.fields import EmbeddedModelField
 from django_mongodb_backend.fields.array import ArrayField, ArrayLenTransform
-from django_mongodb_backend.query_utils import process_lhs, process_rhs, valid_path_key_name
+from django_mongodb_backend.query_utils import process_lhs, process_rhs
 
 
 class EmbeddedModelArrayField(ArrayField):
@@ -253,8 +253,6 @@ class EmbeddedModelArrayFieldTransform(Transform):
     def is_simple_column(self):
         previous = self
         while isinstance(previous, EmbeddedModelArrayFieldTransform):
-            if not valid_path_key_name(previous._field.column):
-                return False
             previous = previous.lhs
         return previous.is_simple_column and self._lhs.is_simple_column
 

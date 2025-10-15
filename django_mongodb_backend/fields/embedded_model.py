@@ -8,7 +8,6 @@ from django.db.models.lookups import Transform
 from django.utils.functional import cached_property
 
 from django_mongodb_backend import forms
-from django_mongodb_backend.query_utils import valid_path_key_name
 
 
 class EmbeddedModelField(models.Field):
@@ -176,8 +175,6 @@ class EmbeddedModelTransform(Transform):
     def is_simple_column(self):
         previous = self
         while isinstance(previous, EmbeddedModelTransform):
-            if not valid_path_key_name(previous._field.column):
-                return False
             previous = previous.lhs
         return previous.is_simple_column
 
