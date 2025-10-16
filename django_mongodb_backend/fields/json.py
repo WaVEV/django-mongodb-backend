@@ -18,7 +18,13 @@ from django.db.models.fields.json import (
 )
 
 from django_mongodb_backend.lookups import builtin_lookup_expr, builtin_lookup_path
-from django_mongodb_backend.query_utils import process_lhs, process_rhs, valid_path_key_name
+from django_mongodb_backend.query_utils import process_lhs, process_rhs
+
+
+def valid_path_key_name(key_name):
+    # A value can use path syntax (field.subfield.) unless it contains a
+    # dollar sign or period.
+    return not any(char in key_name for char in ("$", "."))
 
 
 def build_json_mql_path(lhs, key_transforms, as_expr=False):

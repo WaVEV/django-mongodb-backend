@@ -1,5 +1,3 @@
-import re
-
 from django.core.exceptions import FullResultSet
 from django.db.models.aggregates import Aggregate
 from django.db.models.expressions import CombinedExpression, Func, Value
@@ -82,7 +80,3 @@ def is_constant_value(value):
         # Allow Func with can_use_path as a temporary exception.
         (isinstance(value, Func) and value.can_use_path)
     )
-
-
-def valid_path_key_name(key_name):
-    return bool(re.fullmatch(r"[A-Za-z0-9_]+", key_name))
