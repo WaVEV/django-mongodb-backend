@@ -267,6 +267,8 @@ class FKLookupConditionPushdownTests(MongoTestCaseMixin, TestCase):
         )
 
     def test_negated_related_filter_is_not_pushable(self):
+        # import ipdb
+        # ipdb.set_trace()
         with self.assertNumQueries(1) as ctx:
             list(Book.objects.filter(~models.Q(author__name="John")))
         self.assertAggregateQuery(

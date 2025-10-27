@@ -9,17 +9,17 @@ from django.db.models.aggregates import Aggregate, Variance
 from django.db.models.expressions import Case, Col, OrderBy, Ref, Value, When
 from django.db.models.functions.comparison import Coalesce
 from django.db.models.functions.math import Power
-from django.db.models.lookups import IsNull, Lookup
+from django.db.models.lookups import IsNull
 from django.db.models.sql import compiler
 from django.db.models.sql.constants import GET_ITERATOR_CHUNK_SIZE, MULTI, SINGLE
 from django.db.models.sql.datastructures import BaseTable
-from django.db.models.sql.where import AND, WhereNode
+from django.db.models.sql.where import AND, OR, XOR, WhereNode
 from django.utils.functional import cached_property
 from pymongo import ASCENDING, DESCENDING
 
 from .expressions.search import SearchExpression, SearchVector
 from .query import MongoQuery, wrap_database_errors
-from .query_utils import is_direct_value
+from .query_utils import is_constant_value
 
 
 class SQLCompiler(compiler.SQLCompiler):
@@ -658,22 +658,43 @@ class SQLCompiler(compiler.SQLCompiler):
                 combinator_pipeline.append({"$unset": "_id"})
         return combinator_pipeline
 
+    def _get_pushable_conditions(self):
+        def collect_pushable(expr, negated=False):
+            if isinstance(expr, WhereNode):
+                pushable_expressions = (
+                    collect_pushable(sub_expr, negated=negated != expr.negated)
+                    for sub_expr in expr.children
+                )
+                operator = expr.connector
+                if operator == XOR:
+                    return {}
+                if negated:
+                    operator = OR if operator == AND else AND
+                result = defaultdict(list, next(pushable_expressions, {}))
+                shared_alias = set(result)
+                for pe in pushable_expressions:
+                    shared_alias &= set(pe)
+                    for alias, expressions in pe.items():
+                        result[alias] += expressions
+                if operator == AND:
+                    return result
+                return {k: v for k, v in result.items() if k in shared_alias}
+            if expr.lhs.is_simple_column and (
+                is_constant_value(expr.rhs) or expr.rhs.is_simple_column
+            ):
+                alias = expr.lhs.alias
+                if negated:
+                    expr = WhereNode(children=[expr], negated=True)
+                return {expr.lhs.alias: [expr]}
+            return {}
+
+        return collect_pushable(self.get_where())
+
     def get_lookup_pipeline(self):
         result = []
         # To improve join performance, push conditions (filters) from the
         # WHERE ($match) clause to the JOIN ($lookup) clause.
-        where = self.get_where()
-        pushed_filters = defaultdict(list)
-        for expr in where.children if where and where.connector == AND else ():
-            # Push only basic lookups; no subqueries or complex conditions.
-            # To avoid duplication across subqueries, only use the LHS target
-            # table.
-            if (
-                isinstance(expr, Lookup)
-                and isinstance(expr.lhs, Col)
-                and (is_direct_value(expr.rhs) or isinstance(expr.rhs, (Value, Col)))
-            ):
-                pushed_filters[expr.lhs.alias].append(expr)
+        pushed_filters = self._get_pushable_conditions()
         for alias in tuple(self.query.alias_map):
             if not self.query.alias_refcount[alias] or self.collection_name == alias:
                 continue
