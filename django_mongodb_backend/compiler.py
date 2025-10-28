@@ -670,12 +670,19 @@ class SQLCompiler(compiler.SQLCompiler):
                     return {}
                 if negated:
                     operator = OR if operator == AND else AND
-                result = defaultdict(list, next(pushable_expressions, {}))
+                result = next(pushable_expressions, {})
                 shared_alias = set(result)
                 for pe in pushable_expressions:
                     shared_alias &= set(pe)
                     for alias, expressions in pe.items():
-                        result[alias] += expressions
+                        children = [expressions]
+                        if alias in result:
+                            children.append(result[alias])
+                        result[alias] = WhereNode(
+                            children=children,
+                            negated=negated,
+                            connector=operator,
+                        )
                 if operator == AND:
                     return result
                 return {k: v for k, v in result.items() if k in shared_alias}
@@ -683,9 +690,8 @@ class SQLCompiler(compiler.SQLCompiler):
                 is_constant_value(expr.rhs) or expr.rhs.is_simple_column
             ):
                 alias = expr.lhs.alias
-                if negated:
-                    expr = WhereNode(children=[expr], negated=True)
-                return {expr.lhs.alias: [expr]}
+                expr = WhereNode(children=[expr], negated=negated)
+                return {alias: expr}
             return {}
 
         return collect_pushable(self.get_where())
@@ -699,7 +705,7 @@ class SQLCompiler(compiler.SQLCompiler):
             if not self.query.alias_refcount[alias] or self.collection_name == alias:
                 continue
             result += self.query.alias_map[alias].as_mql(
-                self, self.connection, WhereNode(pushed_filters[alias], connector=AND)
+                self, self.connection, pushed_filters.get(alias)
             )
         return result
 
