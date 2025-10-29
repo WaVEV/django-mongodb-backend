@@ -13,7 +13,7 @@ from django.db.models.lookups import IsNull
 from django.db.models.sql import compiler
 from django.db.models.sql.constants import GET_ITERATOR_CHUNK_SIZE, MULTI, SINGLE
 from django.db.models.sql.datastructures import BaseTable
-from django.db.models.sql.where import AND, OR, XOR, WhereNode
+from django.db.models.sql.where import AND, OR, XOR, NothingNode, WhereNode
 from django.utils.functional import cached_property
 from pymongo import ASCENDING, DESCENDING
 
@@ -660,34 +660,41 @@ class SQLCompiler(compiler.SQLCompiler):
 
     def _get_pushable_conditions(self):
         def collect_pushable(expr, negated=False):
+            if isinstance(expr, NothingNode):
+                return {}
             if isinstance(expr, WhereNode):
-                pushable_expressions = (
-                    collect_pushable(sub_expr, negated=negated != expr.negated)
-                    for sub_expr in expr.children
-                )
+                negated = negated != expr.negated
+                pushable_expressions = [
+                    collect_pushable(sub_expr, negated=negated) for sub_expr in expr.children
+                ]
                 operator = expr.connector
                 if operator == XOR:
                     return {}
                 if negated:
                     operator = OR if operator == AND else AND
-                result = next(pushable_expressions, {})
-                shared_alias = set(result)
+                alias_children = defaultdict(list)
+                shared_alias = None
+                result = {}
                 for pe in pushable_expressions:
-                    shared_alias &= set(pe)
+                    if not shared_alias:
+                        shared_alias = set(pe)
+                    else:
+                        shared_alias &= set(pe)
                     for alias, expressions in pe.items():
-                        children = [expressions]
-                        if alias in result:
-                            children.append(result[alias])
-                        result[alias] = WhereNode(
-                            children=children,
-                            negated=negated,
-                            connector=operator,
-                        )
+                        alias_children[alias].append(expressions)
+                for alias, children in alias_children.items():
+                    result[alias] = WhereNode(
+                        children=children,
+                        negated=False,
+                        connector=operator,
+                    )
                 if operator == AND:
                     return result
                 return {k: v for k, v in result.items() if k in shared_alias}
-            if expr.lhs.is_simple_column and (
-                is_constant_value(expr.rhs) or expr.rhs.is_simple_column
+            if (
+                expr is not None
+                and isinstance(expr.lhs, Col)
+                and (is_constant_value(expr.rhs) or getattr(expr.rhs, "is_simple_column", False))
             ):
                 alias = expr.lhs.alias
                 expr = WhereNode(children=[expr], negated=negated)
