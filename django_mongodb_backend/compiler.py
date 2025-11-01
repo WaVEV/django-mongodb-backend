@@ -660,12 +660,14 @@ class SQLCompiler(compiler.SQLCompiler):
 
     def _get_pushable_conditions(self):
         def collect_pushable(expr, negated=False):
-            if isinstance(expr, NothingNode):
+            if expr is None or isinstance(expr, NothingNode):
                 return {}
             if isinstance(expr, WhereNode):
-                negated = negated != expr.negated
+                negated ^= expr.negated
                 pushable_expressions = [
-                    collect_pushable(sub_expr, negated=negated) for sub_expr in expr.children
+                    collect_pushable(sub_expr, negated=negated)
+                    for sub_expr in expr.children
+                    if sub_expr is not None
                 ]
                 operator = expr.connector
                 if operator == XOR:
@@ -673,15 +675,10 @@ class SQLCompiler(compiler.SQLCompiler):
                 if negated:
                     operator = OR if operator == AND else AND
                 alias_children = defaultdict(list)
-                shared_alias = None
-                result = {}
                 for pe in pushable_expressions:
-                    if not shared_alias:
-                        shared_alias = set(pe)
-                    else:
-                        shared_alias &= set(pe)
                     for alias, expressions in pe.items():
                         alias_children[alias].append(expressions)
+                result = {}
                 for alias, children in alias_children.items():
                     result[alias] = WhereNode(
                         children=children,
@@ -690,11 +687,14 @@ class SQLCompiler(compiler.SQLCompiler):
                     )
                 if operator == AND:
                     return result
+                shared_alias = (
+                    set.intersection(*(set(pe) for pe in pushable_expressions))
+                    if pushable_expressions
+                    else set()
+                )
                 return {k: v for k, v in result.items() if k in shared_alias}
-            if (
-                expr is not None
-                and isinstance(expr.lhs, Col)
-                and (is_constant_value(expr.rhs) or getattr(expr.rhs, "is_simple_column", False))
+            if isinstance(expr.lhs, Col) and (
+                is_constant_value(expr.rhs) or getattr(expr.rhs, "is_simple_column", False)
             ):
                 alias = expr.lhs.alias
                 expr = WhereNode(children=[expr], negated=negated)
