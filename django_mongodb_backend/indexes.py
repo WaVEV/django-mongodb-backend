@@ -142,10 +142,6 @@ class EmbeddedModelFieldsCheckMixin:
         return forward_fields
 
 
-class EmbeddedModelUniqueConstraint(EmbeddedModelFieldsCheckMixin, UniqueConstraint):
-    pass
-
-
 class EmbeddedModelIndex(EmbeddedModelFieldsCheckMixin, Index):
     def set_name_with_model(self, model):
         """
@@ -228,6 +224,10 @@ class EmbeddedModelIndex(EmbeddedModelFieldsCheckMixin, Index):
             if isinstance(field, EmbeddedModelField):
                 model = field.embedded_model
         return FieldColumn(field, ".".join(path))
+
+
+class EmbeddedModelUniqueConstraint(EmbeddedModelFieldsCheckMixin, UniqueConstraint):
+    pass
 
 
 class SearchIndex(Index):
