@@ -641,10 +641,10 @@ class EmbeddedModelsTopLevelIndexTest(TestMixin, TransactionTestCase):
             class Meta:
                 app_label = "schema_"
                 constraints = [
-                    models.UniqueConstraint(
+                    EmbeddedModelUniqueConstraint(
                         fields=["author.unique_constraint_two"], name="unique_two"
                     ),
-                    models.UniqueConstraint(
+                    EmbeddedModelUniqueConstraint(
                         fields=["author.address.unique_constraint_one"], name="unique_one"
                     ),
                 ]
