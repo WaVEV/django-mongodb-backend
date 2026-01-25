@@ -127,7 +127,7 @@
       "version": "3.11.0"
     },
     {
-      "bom-ref": "boto3==1.42.31",
+      "bom-ref": "boto3==1.42.34",
       "description": "The AWS SDK for Python",
       "externalReferences": [
         {
@@ -154,12 +154,12 @@
         }
       ],
       "name": "boto3",
-      "purl": "pkg:pypi/boto3@1.42.31",
+      "purl": "pkg:pypi/boto3@1.42.34",
       "type": "library",
-      "version": "1.42.31"
+      "version": "1.42.34"
     },
     {
-      "bom-ref": "botocore==1.42.31",
+      "bom-ref": "botocore==1.42.34",
       "description": "Low-level, data-driven core of boto 3.",
       "externalReferences": [
         {
@@ -182,9 +182,9 @@
           "value": "crt"
         }
       ],
-      "purl": "pkg:pypi/botocore@1.42.31",
+      "purl": "pkg:pypi/botocore@1.42.34",
       "type": "library",
-      "version": "1.42.31"
+      "version": "1.42.34"
     },
     {
       "bom-ref": "certifi==2026.1.4",
@@ -297,9 +297,7 @@
       ],
       "licenses": [
         {
-          "license": {
-            "id": "Apache-2.0"
-          }
+          "expression": "Apache-2.0 OR BSD-3-Clause"
         }
       ],
       "name": "cryptography",
@@ -308,7 +306,7 @@
       "version": "46.0.3"
     },
     {
-      "bom-ref": "django-mongodb-backend==6.0.1.dev0",
+      "bom-ref": "django-mongodb-backend==6.0.2.dev0",
       "description": "Django MongoDB Backend",
       "externalReferences": [
         {
@@ -346,8 +344,8 @@
       ],
       "name": "django-mongodb-backend",
       "type": "library",
-      "version": "6.0.1.dev0",
-      "purl": "pkg:pypi/django-mongodb-backend@6.0.1.dev0"
+      "version": "6.0.2.dev0",
+      "purl": "pkg:pypi/django-mongodb-backend@6.0.2.dev0"
     },
     {
       "bom-ref": "dnspython==2.8.0",
@@ -515,7 +513,7 @@
       "version": "3.11"
     },
     {
-      "bom-ref": "jmespath==1.0.1",
+      "bom-ref": "jmespath==1.1.0",
       "description": "JSON Matching Expressions",
       "externalReferences": [
         {
@@ -532,12 +530,12 @@
         }
       ],
       "name": "jmespath",
-      "purl": "pkg:pypi/jmespath@1.0.1",
+      "purl": "pkg:pypi/jmespath@1.1.0",
       "type": "library",
-      "version": "1.0.1"
+      "version": "1.1.0"
     },
     {
-      "bom-ref": "packaging==25.0",
+      "bom-ref": "packaging==26.0",
       "description": "Core utilities for Python packages",
       "externalReferences": [
         {
@@ -553,27 +551,20 @@
       ],
       "licenses": [
         {
-          "license": {
-            "name": "License :: OSI Approved :: Apache Software License"
-          }
-        },
-        {
-          "license": {
-            "name": "License :: OSI Approved :: BSD License"
-          }
+          "expression": "Apache-2.0 OR BSD-2-Clause"
         }
       ],
       "name": "packaging",
-      "purl": "pkg:pypi/packaging@25.0",
+      "purl": "pkg:pypi/packaging@26.0",
       "type": "library",
-      "version": "25.0"
+      "version": "26.0"
     },
     {
-      "bom-ref": "pycparser==2.23",
+      "bom-ref": "pycparser==3.0",
       "description": "C parser in Python",
       "externalReferences": [
         {
-          "comment": "from packaging metadata: Home-page",
+          "comment": "from packaging metadata Project-URL: Homepage",
           "type": "website",
           "url": "https://github.com/eliben/pycparser"
         }
@@ -583,17 +574,12 @@
           "license": {
             "id": "BSD-3-Clause"
           }
-        },
-        {
-          "license": {
-            "name": "License :: OSI Approved :: BSD License"
-          }
         }
       ],
       "name": "pycparser",
-      "purl": "pkg:pypi/pycparser@2.23",
+      "purl": "pkg:pypi/pycparser@3.0",
       "type": "library",
-      "version": "2.23"
+      "version": "3.0"
     },
     {
       "bom-ref": "pymongo==4.16.0",
@@ -866,26 +852,26 @@
     },
     {
       "dependsOn": [
-        "botocore==1.42.31",
-        "jmespath==1.0.1",
+        "botocore==1.42.34",
+        "jmespath==1.1.0",
         "s3transfer==0.16.0"
       ],
-      "ref": "boto3==1.42.31"
+      "ref": "boto3==1.42.34"
     },
     {
       "dependsOn": [
-        "jmespath==1.0.1",
+        "jmespath==1.1.0",
         "python-dateutil==2.9.0.post0",
         "urllib3==2.6.3"
       ],
-      "ref": "botocore==1.42.31"
+      "ref": "botocore==1.42.34"
     },
     {
       "ref": "certifi==2026.1.4"
     },
     {
       "dependsOn": [
-        "pycparser==2.23"
+        "pycparser==3.0"
       ],
       "ref": "cffi==2.0.0"
     },
@@ -901,7 +887,7 @@
         "Django==6.0.1",
         "pymongo==4.16.0"
       ],
-      "ref": "django-mongodb-backend==6.0.1.dev0"
+      "ref": "django-mongodb-backend==6.0.2.dev0"
     },
     {
       "dependsOn": [
@@ -936,18 +922,18 @@
       "ref": "idna==3.11"
     },
     {
-      "ref": "jmespath==1.0.1"
+      "ref": "jmespath==1.1.0"
     },
     {
-      "ref": "packaging==25.0"
+      "ref": "packaging==26.0"
     },
     {
-      "ref": "pycparser==2.23"
+      "ref": "pycparser==3.0"
     },
     {
       "dependsOn": [
-        "boto3==1.42.31",
-        "botocore==1.42.31",
+        "boto3==1.42.34",
+        "botocore==1.42.34",
         "dnspython==2.8.0",
         "pymongo==4.16.0"
       ],
@@ -968,7 +954,7 @@
         "cffi==2.0.0",
         "cryptography==46.0.3",
         "httpx==0.28.1",
-        "packaging==25.0",
+        "packaging==26.0",
         "pymongo==4.16.0"
       ],
       "ref": "pymongocrypt==1.17.0"
@@ -981,7 +967,7 @@
     },
     {
       "dependsOn": [
-        "botocore==1.42.31"
+        "botocore==1.42.34"
       ],
       "ref": "s3transfer==0.16.0"
     },
@@ -996,7 +982,7 @@
     }
   ],
   "metadata": {
-    "timestamp": "2026-01-21T01:34:46.204560+00:00",
+    "timestamp": "2026-01-25T21:25:08.104362+00:00",
     "tools": {
       "components": [
         {
@@ -1098,7 +1084,7 @@
       ]
     }
   },
-  "serialNumber": "urn:uuid:bb5c747a-8800-4d48-b534-9dde271c6a19",
+  "serialNumber": "urn:uuid:9f304b46-70ad-4109-8d13-da02d708b426",
   "version": 1,
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
