@@ -4,7 +4,7 @@ from django.test import TestCase
 
 from django_mongodb_backend.constraints import EmbeddedModelUniqueConstraint
 
-from .models import EmbeddedSchemaTestModel, Movie
+from .models import Data, EmbeddedSchemaTestModel, Movie, Review
 
 
 class EmbeddedModelUniqueConstraintTests(TestCase):
@@ -29,6 +29,8 @@ class EmbeddedModelUniqueConstraintTests(TestCase):
                 constraint_info[constraint.name]["type"],
                 "idx",
             )
+            EmbeddedSchemaTestModel.objects.create(embedded_model=Data(), integer=1)
+            EmbeddedSchemaTestModel.objects.create(embedded_model=Data(), integer=1)
         finally:
             with connection.schema_editor() as editor:
                 editor.remove_constraint(constraint=constraint, model=EmbeddedSchemaTestModel)
@@ -70,6 +72,19 @@ class EmbeddedModelUniqueConstraintTests(TestCase):
             self.assertCountEqual(
                 constraint_info[constraint.name]["columns"],
                 constraint.fields,
+            )
+            Movie.objects.create(
+                title="Jaws", reviews=[Review(title="Good", rating=1), Review(title="Bad")]
+            )
+            # Fails due to duplicate Review.rating null values:
+            # E11000 duplicate key error collection:
+            # test_django.constraints__movie index: embedded_multi_idx dup
+            # key: { reviews.rating: null }'
+            # I think the partialFilterExpression isn't correct or doesn't work:
+            # {'unique': True, 'partialFilterExpression': {'reviews.rating': {'$type': 'decimal'}})}
+            # Possibly a server limitation: https://stackoverflow.com/a/68080890/5112
+            Movie.objects.create(
+                title="Jaws", reviews=[Review(title="Good", rating=2), Review(title="Bad")]
             )
         finally:
             with connection.schema_editor() as editor:

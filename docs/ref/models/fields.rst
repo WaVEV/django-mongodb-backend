@@ -309,6 +309,10 @@ These indexes use 0-based indexing.
             class Book(models.Model):
                 author = EmbeddedModelField(Author)
 
+        To index embedded model fields or set them as unique, see
+        :ref:`embedded-model-field-indexes` and
+        :ref:`embedded-model-field-unique-constraints`.
+
     See :ref:`the embedded model topic guide <embedded-model-field-example>`
     for more details and examples.
 

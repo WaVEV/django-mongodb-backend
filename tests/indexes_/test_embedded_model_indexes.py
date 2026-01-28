@@ -1,6 +1,6 @@
 from django.core.exceptions import FieldDoesNotExist
 from django.db import connection
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 
 from django_mongodb_backend.indexes import EmbeddedModelIndex
 
@@ -8,7 +8,7 @@ from .models import EmbeddedSchemaTestModel, Movie
 from .test_base import SchemaAssertionMixin
 
 
-class EmbeddedModelIndexNameTests(TestCase):
+class EmbeddedModelIndexNameTests(SimpleTestCase):
     class LongDBTableModel:
         class _meta:
             db_table = "a_really_very_very_long_model_db_table_name"

@@ -64,6 +64,8 @@ address with the city "New York"::
 
     >>> Customer.objects.filter(address__city="New York")
 
+.. _embedded-model-field-indexes:
+
 Indexing ``EmbeddedModelField``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -94,6 +96,7 @@ For example::
                 EmbeddedModelIndex(fields=["address.zip_code"])
             ]
 
+.. _embedded-model-field-unique-constraints:
 
 Unique constraints on ``EmbeddedModelField``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -127,7 +130,6 @@ For example::
                     name="unique_product_sku",
                 )
             ]
-
 
 .. _embedded-model-array-field-example:
 
@@ -248,7 +250,6 @@ For example, if the ``Tag`` model had an ``EmbeddedModelArrayField`` called
     >>> Post.objects.filter(tags__colors__name="blue")
     ...
     ValueError: Cannot perform multiple levels of array traversal in a query.
-
 
 Indexing ``EmbeddedModelArrayField``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -5,11 +5,11 @@ from django_mongodb_backend.models import EmbeddedModel
 
 
 class Data(EmbeddedModel):
-    integer = models.IntegerField()
+    integer = models.IntegerField(null=True)
 
 
 class EmbeddedSchemaTestModel(models.Model):
-    integer = models.IntegerField()
+    integer = models.IntegerField(null=True)
     embedded_model = EmbeddedModelField(Data)
 
 
@@ -23,7 +23,7 @@ class Movie(models.Model):
 
 
 class Review(EmbeddedModel):
-    title = models.CharField(max_length=255, db_column="title_")
+    title = models.CharField(max_length=255)
     rating = models.DecimalField(max_digits=6, decimal_places=1)
 
     def __str__(self):
